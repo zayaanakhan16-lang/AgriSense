@@ -1,0 +1,229 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 84 24% 96%;
+    --foreground: 168 100% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 168 100% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 168 100% 12%;
+    --primary: 166 100% 12%;
+    --primary-foreground: 84 24% 97%;
+    --secondary: 84 20% 92%;
+    --secondary-foreground: 166 100% 12%;
+    --muted: 84 16% 92%;
+    --muted-foreground: 156 10% 40%;
+    --accent: 76 100% 45%;
+    --accent-foreground: 168 100% 10%;
+    --destructive: 0 66% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 156 12% 86%;
+    --input: 156 12% 86%;
+    --ring: 76 100% 45%;
+    --radius: 0.75rem;
+
+    --shell: 168 100% 7%;
+    --shell-foreground: 84 24% 95%;
+    --shell-muted: 158 22% 62%;
+  }
+
+  .dark {
+    --background: 168 100% 6%;
+    --foreground: 84 24% 95%;
+    --card: 168 62% 8%;
+    --card-foreground: 84 24% 95%;
+    --popover: 168 74% 8%;
+    --popover-foreground: 84 24% 95%;
+    --primary: 76 100% 45%;
+    --primary-foreground: 168 100% 9%;
+    --secondary: 166 42% 14%;
+    --secondary-foreground: 84 24% 95%;
+    --muted: 166 30% 15%;
+    --muted-foreground: 150 14% 64%;
+    --accent: 76 100% 45%;
+    --accent-foreground: 168 100% 9%;
+    --destructive: 4 74% 56%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 166 30% 18%;
+    --input: 166 30% 20%;
+    --ring: 76 100% 45%;
+
+    --shell: 170 100% 5%;
+    --shell-foreground: 84 24% 95%;
+    --shell-muted: 156 18% 60%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss01';
+    text-rendering: optimizeLegibility;
+    overscroll-behavior: none;
+  }
+
+  ::selection {
+    background: rgba(168, 230, 0, 0.32);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display tracking-tight;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-lime ring-offset-2 ring-offset-background;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(95, 115, 104, 0.35);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(95, 115, 104, 0.6);
+    background-clip: content-box;
+  }
+}
+
+@layer components {
+  .surface {
+    @apply rounded-xl border border-border/70 bg-card shadow-panel;
+  }
+
+  .surface-glass {
+    background: linear-gradient(180deg, hsl(var(--card) / 0.94), hsl(var(--card) / 0.86));
+    backdrop-filter: blur(18px) saturate(140%);
+    @apply rounded-xl border border-white/10 shadow-float;
+  }
+
+  .shell-panel {
+    background: hsl(var(--shell));
+    color: hsl(var(--shell-foreground));
+  }
+
+  .metric-value {
+    @apply font-mono text-2xl font-semibold tabular-nums tracking-tight;
+  }
+
+  .label-caps {
+    @apply text-2xs font-semibold uppercase tracking-[0.14em] text-muted-foreground;
+  }
+
+  .hairline {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-border to-transparent;
+  }
+
+  .grid-noise {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  .skeleton {
+    @apply relative overflow-hidden rounded-md bg-muted/70;
+  }
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/10 to-transparent;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* ---- Field drawing: pencil cursor ---------------------------------------- */
+.cursor-pencil,
+.cursor-pencil * {
+  cursor:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='34' height='34' viewBox='0 0 34 34'><g transform='rotate(45 17 17)'><rect x='12' y='2' width='10' height='19' rx='1.6' fill='%23A8E600' stroke='%23003B2F' stroke-width='1.6'/><rect x='12' y='2' width='10' height='4.5' rx='1.2' fill='%23D7FF54' stroke='%23003B2F' stroke-width='1.2'/><path d='M12 21 h10 l-5 8 z' fill='%23F7F7EF' stroke='%23003B2F' stroke-width='1.6' stroke-linejoin='round'/><path d='M14.6 25.4 h4.8 l-2.4 3.6 z' fill='%23003B2F'/></g><circle cx='17' cy='17' r='15.2' fill='none' stroke='%23003B2F' stroke-opacity='0.25' stroke-width='1'/></svg>")
+      2 30,
+    crosshair;
+}
+
+.cursor-pencil-active,
+.cursor-pencil-active * {
+  cursor:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='34' height='34' viewBox='0 0 34 34'><g transform='rotate(45 17 17)'><rect x='12' y='2' width='10' height='19' rx='1.6' fill='%23A8E600' stroke='%23003B2F' stroke-width='1.6'/><rect x='12' y='2' width='10' height='4.5' rx='1.2' fill='%23D7FF54' stroke='%23003B2F' stroke-width='1.2'/><path d='M12 21 h10 l-5 8 z' fill='%23F7F7EF' stroke='%23003B2F' stroke-width='1.6' stroke-linejoin='round'/><path d='M14.6 25.4 h4.8 l-2.4 3.6 z' fill='%23003B2F'/></g><circle cx='17' cy='17' r='14.6' fill='none' stroke='%23A8E600' stroke-width='2'/></svg>")
+      2 30,
+    crosshair;
+}
+
+.cursor-crosshair,
+.cursor-crosshair * {
+  cursor: crosshair;
+}
+
+/* ---- MapLibre: remove default chrome, keep attribution readable ---------- */
+.maplibregl-ctrl-attrib {
+  background: rgba(0, 31, 25, 0.62) !important;
+  color: rgba(247, 247, 239, 0.78) !important;
+  font-size: 10px !important;
+  border-radius: 6px 0 0 0;
+}
+.maplibregl-ctrl-attrib a {
+  color: rgba(215, 255, 84, 0.9) !important;
+}
+.maplibregl-canvas:focus {
+  outline: none;
+}
+
+@keyframes agrisense-scan {
+  0% {
+    transform: translateY(-110%);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.9;
+  }
+  85% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(110%);
+    opacity: 0;
+  }
+}
+.scanline {
+  animation: agrisense-scan 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
