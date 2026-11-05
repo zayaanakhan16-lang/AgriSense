@@ -73,33 +73,6 @@ export function AppShell(): JSX.Element {
 
         <Separator className="hidden h-6 w-px bg-white/12 md:block" />
 
-        {/* primary navigation */}
-        <nav aria-label="Primary" className="hidden min-w-0 flex-1 md:block">
-          <ul className="flex items-center gap-0.5">
-            {NAV_ITEMS.map((item) => {
-              const active = isActive(location.pathname, item.to);
-              return (
-                <li key={item.to}>
-                  <NavLink
-                    to={item.to}
-                    aria-current={active ? 'page' : undefined}
-                    className={cn(
-                      'group relative flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[0.8125rem] font-medium transition-colors',
-                      active ? 'text-cream' : 'text-cream/60 hover:text-cream',
-                    )}
-                  >
-                    <item.icon className="size-[0.9375rem] shrink-0" aria-hidden />
-                    <span className="hidden lg:inline">{item.short}</span>
-                    {active ? (
-                      <span className="absolute inset-x-2 -bottom-[0.4rem] h-0.5 rounded-full bg-lime" aria-hidden />
-                    ) : null}
-                  </NavLink>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-
         {/* mobile: current page label */}
         <div className="min-w-0 flex-1 md:hidden">
           <p className="truncate font-display text-sm font-semibold text-cream">
