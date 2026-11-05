@@ -1,22 +1,19 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 import type { Field } from '@/types';
 import { DrawingWorkspace } from '@/features/drawing/DrawingWorkspace';
 import { SearchPanel } from '@/features/earth/SearchPanel';
 import { EarthWorkspace } from '@/features/earth/EarthWorkspace';
 import { MapStatusBar } from '@/components/map/MapStatusBar';
-import { AnalysisTransition } from '@/features/analysis/AnalysisTransition';
 import { BASEMAPS, useMapStore, useSearchStore } from '@/store/mapStore';
 import { useDrawStore } from '@/store/drawStore';
 import { useFieldsStore } from '@/store/fieldsStore';
 import { buildDemoRegion, DEMO_REGION_ID } from '@/data/regions';
 
-type Mode = 'explore' | 'analysis';
-
 export default function EarthExplorerPage(): JSX.Element {
-  const [pendingField, setPendingField] = useState<Field | null>(null);
-  const [mode, setMode] = useState<Mode>('explore');
+  const navigate = useNavigate();
   const searchOpen = useSearchStore((s) => s.open);
   const setSearchOpen = useSearchStore((s) => s.setOpen);
   const resetDraw = useDrawStore((s) => s.reset);
@@ -40,39 +37,25 @@ export default function EarthExplorerPage(): JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /**
+   * Saving a region takes the user straight into its analytics workspace. The
+   * analytics run themselves from the region geometry, so there is no staged
+   * progress screen to sit through between drawing and the results.
+   */
   const handleFieldCreated = useCallback(
     (field: Field) => {
       resetDraw();
-      setPendingField(field);
-      setMode('analysis');
+      selectField(field.id);
+      navigate('/analytics');
     },
-    [resetDraw],
+    [resetDraw, selectField, navigate],
   );
-
-  const handleAnalysisCancel = useCallback(() => {
-    setPendingField(null);
-    setMode('explore');
-    resetDraw();
-  }, [resetDraw]);
 
   /** "New region" starts the drawing tool on the map. */
   const handleAddRegion = useCallback(() => {
     resetDraw();
     useDrawStore.getState().start();
   }, [resetDraw]);
-
-  if (mode === 'analysis' && pendingField) {
-    return (
-      <AnalysisTransition
-        field={pendingField}
-        onComplete={() => {
-          setMode('explore');
-          setPendingField(null);
-        }}
-        onCancel={handleAnalysisCancel}
-      />
-    );
-  }
 
   return (
     <EarthWorkspace mode="map" showSources onAddRegion={handleAddRegion}>

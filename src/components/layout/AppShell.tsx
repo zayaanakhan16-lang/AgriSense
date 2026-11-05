@@ -1,63 +1,31 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  BarChart3,
-  CalendarDays,
-  CalendarRange,
-  Compass,
-  Droplets,
-  FileText,
-  Globe2,
-  Grid3x3,
-  Layers3,
-  Leaf,
-  MapPinned,
-  Menu,
-  Mountain,
-  Sparkles,
-  Sprout,
-  X,
-} from 'lucide-react';
+import { BarChart3, Globe2, Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo, LogoMark } from '@/components/brand/Logo';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { FieldContextBar } from '@/components/common/FieldContextBar';
-import { SectionNav } from '@/components/layout/SectionNav';
 
 interface NavItem {
   to: string;
   label: string;
   short: string;
   icon: typeof Globe2;
-  group: 'explore' | 'intelligence' | 'plan' | 'output';
   description: string;
 }
 
+/**
+ * The product is two workspaces: the map you draw regions on, and the analytics
+ * workspace that reports on the selected region. Everything that used to be a
+ * separate top-level page — soil, crops, planning, calendar, decisions, reports —
+ * is now a section inside analytics, so this list stays deliberately short.
+ */
 export const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: 'Earth Explorer', short: 'Earth', icon: Globe2, group: 'explore', description: 'Interactive 3D Earth and region drawing' },
-  { to: '/analytics', label: 'Region Analytics', short: 'Analytics', icon: BarChart3, group: 'explore', description: 'Weather, air, water and land-use analytics for the selected region' },
-  { to: '/crop-profiles', label: 'Crop Profiles', short: 'Profiles', icon: Grid3x3, group: 'explore', description: 'Crop profile points on the satellite map' },
-  { to: '/fields', label: 'My Fields', short: 'Fields', icon: Layers3, group: 'explore', description: 'Saved region boundaries' },
-  { to: '/intelligence', label: 'Field Intelligence', short: 'Overview', icon: Compass, group: 'intelligence', description: 'Overview, boundary and satellite preview' },
-  { to: '/vegetation', label: 'Vegetation & NDVI', short: 'Vegetation', icon: Leaf, group: 'intelligence', description: 'Sentinel-2 vegetation health' },
-  { to: '/soil', label: 'Soil Intelligence', short: 'Soil', icon: Mountain, group: 'intelligence', description: 'SoilGrids properties and texture' },
-  { to: '/climate', label: 'Climate Intelligence', short: 'Climate', icon: Droplets, group: 'intelligence', description: 'Rainfall, temperature, ET₀ and moisture' },
-  { to: '/crops', label: 'Crop Suitability', short: 'Crops', icon: Sprout, group: 'plan', description: 'Rules-first crop suitability comparison across every profile' },
-  { to: '/crop-plan', label: 'Crop Planning', short: 'Planning', icon: CalendarRange, group: 'plan', description: 'Intercropping pairs, rotation and the crop calendar' },
-  { to: '/studio', label: 'Planning Studio', short: 'Studio', icon: MapPinned, group: 'plan', description: 'Spatial crop allocation, scenarios and export' },
-  { to: '/calendar', label: 'Seasonal Calendar', short: 'Calendar', icon: CalendarDays, group: 'plan', description: 'Rotation across spring, summer and rabi' },
-  { to: '/decision', label: 'Decision Center', short: 'Decision', icon: Sparkles, group: 'plan', description: 'The 6:40 AM irrigation decision' },
-  { to: '/reports', label: 'Reports', short: 'Reports', icon: FileText, group: 'output', description: 'Field-ready PDF export' },
+  { to: '/', label: 'Earth Explorer', short: 'Map', icon: Globe2, description: 'Interactive 3D Earth and region drawing' },
+  { to: '/analytics', label: 'Region Analytics', short: 'Analytics', icon: BarChart3, description: 'Weather, soil, crops, planning and reports for the selected region' },
 ];
-
-const GROUP_LABELS: Record<NavItem['group'], string> = {
-  explore: 'Explore',
-  intelligence: 'Intelligence',
-  plan: 'Plan',
-  output: 'Output',
-};
 
 function isActive(pathname: string, to: string): boolean {
   return to === '/' ? pathname === '/' : pathname.startsWith(to);
@@ -187,36 +155,29 @@ export function AppShell(): JSX.Element {
               </div>
               <Separator className="bg-white/[0.07]" />
               <nav className="flex-1 overflow-y-auto px-2.5 py-4" aria-label="Primary mobile">
-                {(Object.keys(GROUP_LABELS) as NavItem['group'][]).map((group) => (
-                  <div key={group} className="mb-5">
-                    <p className="mb-1.5 px-2.5 text-3xs font-semibold uppercase tracking-[0.18em] text-shell-muted/70">
-                      {GROUP_LABELS[group]}
-                    </p>
-                    <ul className="space-y-0.5">
-                      {NAV_ITEMS.filter((item) => item.group === group).map((item) => {
-                        const active = isActive(location.pathname, item.to);
-                        return (
-                          <li key={item.to}>
-                            <NavLink
-                              to={item.to}
-                              aria-current={active ? 'page' : undefined}
-                              className={cn(
-                                'flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-sm transition-colors',
-                                active
-                                  ? 'bg-lime/12 text-lime-300 shadow-inset'
-                                  : 'text-shell-foreground/72 hover:bg-white/[0.06] hover:text-shell-foreground',
-                              )}
-                            >
-                              <item.icon className="size-4 shrink-0" />
-                              <span className="truncate font-medium">{item.label}</span>
-                              {active ? <span className="ml-auto size-1.5 rounded-full bg-lime" aria-hidden /> : null}
-                            </NavLink>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                ))}
+                <ul className="space-y-0.5">
+                  {NAV_ITEMS.map((item) => {
+                    const active = isActive(location.pathname, item.to);
+                    return (
+                      <li key={item.to}>
+                        <NavLink
+                          to={item.to}
+                          aria-current={active ? 'page' : undefined}
+                          className={cn(
+                            'flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-sm transition-colors',
+                            active
+                              ? 'bg-lime/12 text-lime-300 shadow-inset'
+                              : 'text-shell-foreground/72 hover:bg-white/[0.06] hover:text-shell-foreground',
+                          )}
+                        >
+                          <item.icon className="size-4 shrink-0" />
+                          <span className="truncate font-medium">{item.label}</span>
+                          {active ? <span className="ml-auto size-1.5 rounded-full bg-lime" aria-hidden /> : null}
+                        </NavLink>
+                      </li>
+                    );
+                  })}
+                </ul>
               </nav>
               <div className="border-t border-white/[0.07] p-3">
                 <div className="flex items-center gap-2 rounded-lg border border-white/[0.07] bg-white/[0.03] px-2.5 py-2">
@@ -233,7 +194,6 @@ export function AppShell(): JSX.Element {
 
       {/* ------------------------------------------------------------ workspace */}
       <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <SectionNav />
         <div className="min-h-0 flex-1 overflow-hidden">
           <Outlet />
         </div>

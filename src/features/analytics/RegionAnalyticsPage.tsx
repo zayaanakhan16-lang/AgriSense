@@ -1,13 +1,16 @@
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { CalendarDays, Droplets, Gauge, Sprout, Wind } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { SkeletonPanel } from '@/components/layout/PageScaffold';
 import { cn } from '@/lib/utils';
 import { formatAcres } from '@/lib/format';
 import { EarthMap } from '@/components/map/EarthMap';
 import { BarSeriesChart, TimeSeriesChart, AllocationDonut, FactorRadar } from '@/components/charts/Charts';
 import { EarthWorkspace } from '@/features/earth/EarthWorkspace';
+import { ANALYTICS_SECTIONS, DEFAULT_SECTION_ID } from '@/features/analytics/sections';
 import { useFieldsStore } from '@/store/fieldsStore';
 import {
   buildAgMetrics,
@@ -32,6 +35,12 @@ export default function RegionAnalyticsPage(): JSX.Element {
   const selectedFieldId = useFieldsStore((s) => s.selectedFieldId);
   const selectedField = fields.find((field) => field.id === selectedFieldId) ?? fields[0] ?? null;
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requested = searchParams.get('section');
+  const section =
+    ANALYTICS_SECTIONS.find((entry) => entry.id === requested) ??
+    ANALYTICS_SECTIONS.find((entry) => entry.id === DEFAULT_SECTION_ID)!;
+
   const [startDate, setStartDate] = useState(todayIso(-180));
   const [endDate, setEndDate] = useState(todayIso(0));
   const [activeSlice, setActiveSlice] = useState<string | null>(null);
@@ -54,6 +63,10 @@ export default function RegionAnalyticsPage(): JSX.Element {
     };
   }, [selectedField, startDate, endDate]);
 
+  const selectSection = (id: string): void => {
+    setSearchParams(id === DEFAULT_SECTION_ID ? {} : { section: id });
+  };
+
   if (!selectedField || !analytics) {
     return (
       <EarthWorkspace mode="analytics">
@@ -70,217 +83,332 @@ export default function RegionAnalyticsPage(): JSX.Element {
     );
   }
 
+  const SectionPage = section.Page;
+  const isOverview = section.id === DEFAULT_SECTION_ID;
+
   return (
     <EarthWorkspace mode="analytics">
       <div className="relative size-full overflow-hidden bg-forest-950">
-        {/* Blurred satellite backdrop keeps the map application shell visible. */}
-        <div className="pointer-events-none absolute inset-0 opacity-40 blur-[2px]">
-          <EarthMap
-            fieldCoords={selectedField.boundary.coords}
-            showCursorReadout={false}
-            compact
-            className="size-full"
-          />
-        </div>
+        {/* Blurred satellite backdrop keeps the map application shell visible.
+            Sections that render their own map (profiles, vegetation, boundary)
+            would otherwise mount a second MapLibre instance behind this one. */}
+        {isOverview ? (
+          <div className="pointer-events-none absolute inset-0 opacity-40 blur-[2px]">
+            <EarthMap
+              fieldCoords={selectedField.boundary.coords}
+              showCursorReadout={false}
+              compact
+              className="size-full"
+            />
+          </div>
+        ) : null}
 
-        {/* -------------------------------------------------------- scroll content */}
-        <div className="relative z-10 h-full overflow-y-auto px-3 pb-8 pt-20 sm:px-5">
-          <div className="mx-auto w-full max-w-[1180px] space-y-4">
-            {/* ------------------------------------------------------- header */}
-            <div className="chrome p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h1 className="font-display text-base font-semibold text-cream">Region Analytics</h1>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                    <Badge variant="lime">{selectedField.name}</Badge>
-                    <Badge variant="muted">{selectedField.crop ?? 'Wheat'}</Badge>
-                    <span className="font-mono text-2xs tabular-nums text-cream/70">
-                      {formatAcres(selectedField.boundary.areaM2)}
-                    </span>
-                    {selectedField.isSample ? <Badge variant="warning">Demo</Badge> : null}
+        <div className="relative z-10 h-full overflow-y-auto">
+          {/* -------------------------------------------------------- header + tabs */}
+          <div className="w-full px-3 pt-20 sm:px-5">
+            <div className="space-y-3">
+              <div className="chrome p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h1 className="font-display text-base font-semibold text-cream">Region Analytics</h1>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                      <Badge variant="lime">{selectedField.name}</Badge>
+                      <Badge variant="muted">{selectedField.crop ?? 'Wheat'}</Badge>
+                      <span className="font-mono text-2xs tabular-nums text-cream/70">
+                        {formatAcres(selectedField.boundary.areaM2)}
+                      </span>
+                      {selectedField.isSample ? <Badge variant="warning">Demo</Badge> : null}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-end gap-3">
+                    <DateField label="Start date" value={startDate} onChange={setStartDate} max={endDate} />
+                    <DateField label="End date" value={endDate} onChange={setEndDate} min={startDate} />
                   </div>
                 </div>
-
-                <div className="flex flex-wrap items-end gap-3">
-                  <DateField label="Start date" value={startDate} onChange={setStartDate} max={endDate} />
-                  <DateField label="End date" value={endDate} onChange={setEndDate} min={startDate} />
-                </div>
               </div>
 
-              <Separator className="my-3 bg-white/[0.08]" />
-              <p className="text-2xs leading-relaxed text-cream/50">
-                Demonstration analytics. Values are derived from the region’s geometry with a deterministic model — they
-                are not live field measurements.
-              </p>
+              <SectionTabs activeId={section.id} onSelect={selectSection} />
             </div>
-
-            {/* --------------------------------------------------- weather strip */}
-            <div className="chrome flex flex-wrap items-center gap-x-6 gap-y-3 p-4">
-              <div className="flex items-center gap-3">
-                <span className="flex size-11 items-center justify-center rounded-full bg-lime/15 text-lime">
-                  <Wind className="size-5" />
-                </span>
-                <div>
-                  <p className="font-mono text-2xl font-semibold tabular-nums text-cream">
-                    {analytics.weather.temperatureC.toFixed(0)}°C
-                  </p>
-                  <p className="text-2xs text-cream/60">{analytics.weather.condition}</p>
-                </div>
-              </div>
-              <WeatherStat label="Feels like" value={`${analytics.weather.feelsLikeC.toFixed(0)}°C`} />
-              <WeatherStat label="Humidity" value={`${analytics.weather.humidityPct.toFixed(0)}%`} />
-              <WeatherStat label="Wind" value={`${analytics.weather.windKph.toFixed(0)} km/h`} />
-              <WeatherStat
-                label="Air quality"
-                value={`AQI ${analytics.weather.aqi}`}
-                sub={analytics.weather.aqiLabel}
-              />
-              <span className="ml-auto max-w-[260px] text-2xs leading-relaxed text-amber-300/80">
-                {analytics.weather.accuracyNote}
-              </span>
-            </div>
-
-            {/* ------------------------------------------------ precipitation chart */}
-            <section className="chrome p-4">
-              <ChartHeading title="Daily Precipitation, mm" icon={Droplets} />
-              <BarSeriesChart
-                data={analytics.daily.map((point) => ({ date: point.date, precipitation: point.precipitationMm }))}
-                xKey="date"
-                series={[{ key: 'precipitation', name: 'Precipitation', color: ACCENT }]}
-                height={220}
-                formatValue={(value) => `${value.toFixed(1)} mm`}
-              />
-            </section>
-
-            {/* --------------------------------------------- temperature range chart */}
-            <section className="chrome p-4">
-              <ChartHeading title="Temperature Range, °C" icon={Gauge} />
-              <TimeSeriesChart
-                data={analytics.daily.map((point) => ({
-                  date: point.date,
-                  tempMax: point.tempMaxC,
-                  tempMin: point.tempMinC,
-                }))}
-                series={[
-                  { key: 'tempMax', name: 'Max', color: '#E39A34' },
-                  { key: 'tempMin', name: 'Min', color: '#7FB6E0', dash: true },
-                ]}
-                height={220}
-                formatValue={(value) => `${value.toFixed(1)} °C`}
-              />
-              <ChartLegend
-                items={[
-                  { label: 'Maximum', color: '#E39A34', solid: true },
-                  { label: 'Minimum', color: '#7FB6E0', solid: false },
-                ]}
-              />
-            </section>
-
-            {/* --------------------------------------------- air & water quality cards */}
-            <section className="chrome p-4">
-              <ChartHeading title="Air & Water Quality" icon={Wind} />
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                {analytics.airWater.map((metric) => (
-                  <MetricCard
-                    key={metric.id}
-                    label={metric.label}
-                    value={metric.value}
-                    unit={metric.unit}
-                    hint={metric.hint}
-                  />
-                ))}
-              </div>
-              <Separator className="my-3.5 bg-white/[0.08]" />
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                {analytics.ag.map((metric) => (
-                  <MetricCard
-                    key={metric.id}
-                    label={metric.label}
-                    value={metric.value}
-                    unit={metric.unit}
-                    hint={metric.hint}
-                  />
-                ))}
-              </div>
-            </section>
-
-            {/* ------------------------------------------- land use + suitability grid */}
-            <div className="grid gap-4 lg:grid-cols-2">
-              <section className="chrome p-4">
-                <ChartHeading title="Regional Land Use" icon={Sprout} />
-                <AllocationDonut
-                  data={analytics.landUse.map((slice) => ({ name: slice.name, value: slice.value, color: slice.color }))}
-                  height={200}
-                />
-                <ul className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5">
-                  {analytics.landUse.map((slice) => (
-                    <li key={slice.name} className="flex items-center gap-2 text-2xs">
-                      <span className="size-2.5 rounded-sm" style={{ background: slice.color }} aria-hidden />
-                      <span className="flex-1 truncate text-cream/75">{slice.name}</span>
-                      <span className="font-mono tabular-nums text-cream/55">{(slice.value * 100).toFixed(0)}%</span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-
-              <section className="chrome p-4">
-                <ChartHeading title="Land Suitability Score" icon={Gauge} />
-                <FactorRadar data={analytics.suitability} height={230} />
-              </section>
-            </div>
-
-            {/* ------------------------------------------- planning outcome metrics */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <OutcomeCard label="Water Saved" value="22%" note="Illustrative target from the allocation plan above — not a measured saving." />
-              <OutcomeCard label="Revenue Boost" value="+14%" note="Illustrative target from the allocation plan above — not a verified result." />
-            </div>
-
-            {/* -------------------------------------------------- zone allocation */}
-            <section className="chrome p-4">
-              <ChartHeading title="Zone Allocation" icon={Sprout} />
-              <div className="grid items-center gap-4 lg:grid-cols-2">
-                <AllocationDonut
-                  data={analytics.allocation.map((slice) => ({
-                    name: slice.name,
-                    value: slice.share,
-                    color: slice.color,
-                  }))}
-                  height={240}
-                  activeName={activeSlice}
-                  onSelect={(name) => setActiveSlice(activeSlice === name ? null : name)}
-                  centerLabel={{ value: String(analytics.allocation.length), caption: 'zones' }}
-                />
-                <ul className="space-y-2">
-                  {analytics.allocation.map((slice) => (
-                    <li key={slice.id}>
-                      <button
-                        type="button"
-                        onClick={() => setActiveSlice(activeSlice === slice.name ? null : slice.name)}
-                        className={cn(
-                          'flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors',
-                          activeSlice === slice.name
-                            ? 'border-lime/35 bg-lime/[0.1]'
-                            : 'border-white/10 hover:bg-white/[0.05]',
-                        )}
-                      >
-                        <span className="size-3 rounded-sm" style={{ background: slice.color }} aria-hidden />
-                        <span className="text-xs font-semibold text-cream/90">{slice.name}</span>
-                        <span className="text-2xs text-cream/50">{slice.zone}</span>
-                        <span className="ml-auto font-mono text-xs tabular-nums text-cream/80">
-                          {(slice.share * 100).toFixed(0)}%
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {activeSlice ? <ZoneDetail slice={analytics.allocation.find((s) => s.name === activeSlice)} onClose={() => setActiveSlice(null)} /> : null}
-            </section>
           </div>
+
+          {/* ---------------------------------------------------------- section body */}
+          {isOverview ? (
+            <div className="w-full space-y-4 px-3 pb-8 pt-4 sm:px-5">
+              <p className="text-2xs leading-relaxed text-cream/50">
+                Demonstration analytics. Values are derived from the region’s geometry with a deterministic model —
+                they are not live field measurements.
+              </p>
+
+              <AnalyticsOverview
+                analytics={analytics}
+                activeSlice={activeSlice}
+                setActiveSlice={setActiveSlice}
+              />
+            </div>
+          ) : (
+            <div className="w-full px-3 pb-8 pt-4 sm:px-5">
+              <div
+                className={cn(
+                  'overflow-hidden rounded-xl border border-white/10 bg-card/70 backdrop-blur-sm',
+                  // The crop-profile section is a full-bleed map, so it needs an
+                  // explicit height; the other sections lay out as normal content.
+                  section.id === 'profiles' ? 'h-[70vh] min-h-[420px]' : null,
+                )}
+              >
+                <Suspense
+                  fallback={
+                    <div className="p-4">
+                      <SkeletonPanel rows={6} />
+                    </div>
+                  }
+                >
+                  {SectionPage ? <SectionPage /> : null}
+                </Suspense>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </EarthWorkspace>
+  );
+}
+
+/** Horizontally scrollable section switcher for the analytics workspace. */
+function SectionTabs({
+  activeId,
+  onSelect,
+}: {
+  activeId: string;
+  onSelect: (id: string) => void;
+}): JSX.Element {
+  return (
+    <div className="chrome overflow-hidden p-1">
+      <div role="tablist" aria-label="Analytics sections" className="flex items-stretch gap-0.5 overflow-x-auto">
+        {ANALYTICS_SECTIONS.map((entry) => {
+          const active = entry.id === activeId;
+          return (
+            <button
+              key={entry.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => onSelect(entry.id)}
+              title={entry.description}
+              className={cn(
+                'flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-2 text-xs font-medium transition-colors',
+                active ? 'bg-lime/15 text-lime' : 'text-cream/60 hover:bg-white/[0.06] hover:text-cream',
+              )}
+            >
+              <entry.icon className="size-[0.9375rem] shrink-0" aria-hidden />
+              {entry.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+interface OverviewAnalytics {
+  weather: ReturnType<typeof buildWeatherSnapshot>;
+  daily: ReturnType<typeof buildDailySeries>;
+  airWater: ReturnType<typeof buildAirWaterMetrics>;
+  ag: ReturnType<typeof buildAgMetrics>;
+  landUse: ReturnType<typeof buildLandUse>;
+  suitability: ReturnType<typeof buildSuitability>;
+  allocation: ReturnType<typeof buildAllocation>;
+}
+
+/** The Overview tab: the region's headline analytics. */
+function AnalyticsOverview({
+  analytics,
+  activeSlice,
+  setActiveSlice,
+}: {
+  analytics: OverviewAnalytics;
+  activeSlice: string | null;
+  setActiveSlice: (value: string | null) => void;
+}): JSX.Element {
+  return (
+    <>
+      {/* ------------------------------------------------------- weather strip */}
+      <div className="chrome flex flex-wrap items-center gap-x-6 gap-y-3 p-4">
+        <div className="flex items-center gap-3">
+          <span className="flex size-11 items-center justify-center rounded-full bg-lime/15 text-lime">
+            <Wind className="size-5" />
+          </span>
+          <div>
+            <p className="font-mono text-2xl font-semibold tabular-nums text-cream">
+              {analytics.weather.temperatureC.toFixed(0)}°C
+            </p>
+            <p className="text-2xs text-cream/60">{analytics.weather.condition}</p>
+          </div>
+        </div>
+        <WeatherStat label="Feels like" value={`${analytics.weather.feelsLikeC.toFixed(0)}°C`} />
+        <WeatherStat label="Humidity" value={`${analytics.weather.humidityPct.toFixed(0)}%`} />
+        <WeatherStat label="Wind" value={`${analytics.weather.windKph.toFixed(0)} km/h`} />
+        <WeatherStat
+          label="Air quality"
+          value={`AQI ${analytics.weather.aqi}`}
+          sub={analytics.weather.aqiLabel}
+        />
+        <span className="ml-auto max-w-[260px] text-2xs leading-relaxed text-amber-300/80">
+          {analytics.weather.accuracyNote}
+        </span>
+      </div>
+
+      {/* ------------------------------------------------ precipitation chart */}
+      <section className="chrome p-4">
+        <ChartHeading title="Daily Precipitation, mm" icon={Droplets} />
+        <BarSeriesChart
+          data={analytics.daily.map((point) => ({ date: point.date, precipitation: point.precipitationMm }))}
+          xKey="date"
+          series={[{ key: 'precipitation', name: 'Precipitation', color: ACCENT }]}
+          height={220}
+          formatValue={(value) => `${value.toFixed(1)} mm`}
+        />
+      </section>
+
+      {/* --------------------------------------------- temperature range chart */}
+      <section className="chrome p-4">
+        <ChartHeading title="Temperature Range, °C" icon={Gauge} />
+        <TimeSeriesChart
+          data={analytics.daily.map((point) => ({
+            date: point.date,
+            tempMax: point.tempMaxC,
+            tempMin: point.tempMinC,
+          }))}
+          series={[
+            { key: 'tempMax', name: 'Max', color: '#E39A34' },
+            { key: 'tempMin', name: 'Min', color: '#7FB6E0', dash: true },
+          ]}
+          height={220}
+          formatValue={(value) => `${value.toFixed(1)} °C`}
+        />
+        <ChartLegend
+          items={[
+            { label: 'Maximum', color: '#E39A34', solid: true },
+            { label: 'Minimum', color: '#7FB6E0', solid: false },
+          ]}
+        />
+      </section>
+
+      {/* --------------------------------------------- air & water quality cards */}
+      <section className="chrome p-4">
+        <ChartHeading title="Air & Water Quality" icon={Wind} />
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          {analytics.airWater.map((metric) => (
+            <MetricCard
+              key={metric.id}
+              label={metric.label}
+              value={metric.value}
+              unit={metric.unit}
+              hint={metric.hint}
+            />
+          ))}
+        </div>
+        <Separator className="my-3.5 bg-white/[0.08]" />
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          {analytics.ag.map((metric) => (
+            <MetricCard
+              key={metric.id}
+              label={metric.label}
+              value={metric.value}
+              unit={metric.unit}
+              hint={metric.hint}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* ------------------------------------------- land use + suitability grid */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="chrome p-4">
+          <ChartHeading title="Regional Land Use" icon={Sprout} />
+          <AllocationDonut
+            data={analytics.landUse.map((slice) => ({ name: slice.name, value: slice.value, color: slice.color }))}
+            height={200}
+          />
+          <ul className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5">
+            {analytics.landUse.map((slice) => (
+              <li key={slice.name} className="flex items-center gap-2 text-2xs">
+                <span className="size-2.5 rounded-sm" style={{ background: slice.color }} aria-hidden />
+                <span className="flex-1 truncate text-cream/75">{slice.name}</span>
+                <span className="font-mono tabular-nums text-cream/55">{(slice.value * 100).toFixed(0)}%</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="chrome p-4">
+          <ChartHeading title="Land Suitability Score" icon={Gauge} />
+          <FactorRadar data={analytics.suitability} height={230} />
+        </section>
+      </div>
+
+      {/* ------------------------------------------- planning outcome metrics */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <OutcomeCard
+          label="Water Saved"
+          value="22%"
+          note="Illustrative target from the allocation plan above — not a measured saving."
+        />
+        <OutcomeCard
+          label="Revenue Boost"
+          value="+14%"
+          note="Illustrative target from the allocation plan above — not a verified result."
+        />
+      </div>
+
+      {/* -------------------------------------------------- zone allocation */}
+      <section className="chrome p-4">
+        <ChartHeading title="Zone Allocation" icon={Sprout} />
+        <div className="grid items-center gap-4 lg:grid-cols-2">
+          <AllocationDonut
+            data={analytics.allocation.map((slice) => ({
+              name: slice.name,
+              value: slice.share,
+              color: slice.color,
+            }))}
+            height={240}
+            activeName={activeSlice}
+            onSelect={(name) => setActiveSlice(activeSlice === name ? null : name)}
+            centerLabel={{ value: String(analytics.allocation.length), caption: 'zones' }}
+          />
+          <ul className="space-y-2">
+            {analytics.allocation.map((slice) => (
+              <li key={slice.id}>
+                <button
+                  type="button"
+                  onClick={() => setActiveSlice(activeSlice === slice.name ? null : slice.name)}
+                  className={cn(
+                    'flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors',
+                    activeSlice === slice.name
+                      ? 'border-lime/35 bg-lime/[0.1]'
+                      : 'border-white/10 hover:bg-white/[0.05]',
+                  )}
+                >
+                  <span className="size-3 rounded-sm" style={{ background: slice.color }} aria-hidden />
+                  <span className="text-xs font-semibold text-cream/90">{slice.name}</span>
+                  <span className="text-2xs text-cream/50">{slice.zone}</span>
+                  <span className="ml-auto font-mono text-xs tabular-nums text-cream/80">
+                    {(slice.share * 100).toFixed(0)}%
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {activeSlice ? (
+          <ZoneDetail
+            slice={analytics.allocation.find((s) => s.name === activeSlice)}
+            onClose={() => setActiveSlice(null)}
+          />
+        ) : null}
+      </section>
+    </>
   );
 }
 

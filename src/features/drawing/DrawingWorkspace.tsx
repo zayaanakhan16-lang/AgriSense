@@ -5,9 +5,7 @@ import {
   ArrowLeft,
   Check,
   CheckCircle2,
-  Globe2,
   Loader2,
-  LocateFixed,
   Pencil,
   Ruler,
   Sparkles,
@@ -40,7 +38,6 @@ export function DrawingWorkspace({ onFieldCreated, onOpenSearch }: DrawingWorksp
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const cursor = useMapStore((s) => s.cursor);
-  const flyTo = useMapStore((s) => s.flyTo);
   const {
     mode,
     points,
@@ -58,7 +55,6 @@ export function DrawingWorkspace({ onFieldCreated, onOpenSearch }: DrawingWorksp
   const drawing = mode === 'drawing';
   const editing = mode === 'editing';
   const closed = mode === 'closed';
-  const idle = !drawing && !closed && !editing;
 
   const handleStart = useCallback(() => {
     reset();
@@ -122,16 +118,6 @@ export function DrawingWorkspace({ onFieldCreated, onOpenSearch }: DrawingWorksp
     [points, cursor, createField, onFieldCreated],
   );
 
-  const handleLocate = useCallback(() => {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-      (position) =>
-        flyTo({ coord: { lng: position.coords.longitude, lat: position.coords.latitude }, zoom: 15 }),
-      () => undefined,
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
-    );
-  }, [flyTo]);
-
   const ring = points.length >= 3 ? closeRing(points) : null;
   const area = ring ? polygonAreaM2(ring) : 0;
 
@@ -150,59 +136,6 @@ export function DrawingWorkspace({ onFieldCreated, onOpenSearch }: DrawingWorksp
         onDrawCancel={handleCancel}
         className={cn(drawing && 'ring-2 ring-inset ring-lime/25')}
       />
-
-      {/* ------------------------------------------------------------- idle HUD */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-center p-3 sm:p-5">
-        <AnimatePresence mode="wait">
-          {idle ? (
-            <motion.div
-              key="idle"
-              initial={{ opacity: 0, y: -14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -14 }}
-              transition={{ duration: 0.26 }}
-              className="pointer-events-auto mt-16 w-full max-w-[440px] sm:mt-20"
-            >
-              <div className="chrome overflow-hidden">
-                <div className="flex items-start gap-3.5 p-4">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-lime/15 text-lime">
-                    <Pencil className="size-4.5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h2 className="type-section text-cream">Draw a field on Earth</h2>
-                    <p className="mt-1 text-2xs leading-relaxed text-cream/60">
-                      Rotate the globe, zoom to your farm, then trace its boundary. Any shape works — the area is computed
-                      geodesically the moment you close the ring.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.08] bg-black/20 px-4 py-3">
-                  <Button variant="lime" size="sm" onClick={handleStart}>
-                    <Pencil className="size-3.5" />
-                    Draw field
-                  </Button>
-                  <Button
-                    variant="shell"
-                    size="sm"
-                    className="border border-white/10"
-                    onClick={() => {
-                      const target = useMapStore.getState().view;
-                      flyTo({ coord: target.center, zoom: 15 });
-                    }}
-                  >
-                    <Globe2 className="size-3.5" />
-                    Zoom to my area
-                  </Button>
-                  <Button variant="ghost" size="sm" className="text-cream/60 hover:bg-white/10 hover:text-cream" onClick={handleLocate}>
-                    <LocateFixed className="size-3.5" />
-                    My location
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
-      </div>
 
       {/* -------------------------------------------------------- drawing controls */}
       <AnimatePresence>
