@@ -1,29 +1,37 @@
 import { useCallback, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Info, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
+import { Database, X } from 'lucide-react';
 import type { Field } from '@/types';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { DrawingWorkspace } from '@/features/drawing/DrawingWorkspace';
 import { SearchPanel } from '@/features/earth/SearchPanel';
+import { RegionList } from '@/components/map/RegionList';
+import { MapStatusBar } from '@/components/map/MapStatusBar';
 import { AnalysisTransition } from '@/features/analysis/AnalysisTransition';
-import { useMapStore, useSearchStore } from '@/store/mapStore';
+import { BASEMAPS, useMapStore, useSearchStore } from '@/store/mapStore';
 import { useDrawStore } from '@/store/drawStore';
 import { useFieldsStore } from '@/store/fieldsStore';
-import { HAS_MAPBOX_TOKEN } from '@/components/map/earthMapSetup';
+import { DATA_SOURCES } from '@/services/sources';
+
 
 type Mode = 'explore' | 'analysis';
+
+const SOURCE_PILLS = [
+  { label: 'Basemap', value: 'Sentinel-2 (EOX)', source: DATA_SOURCES.satelliteImagery },
+  { label: 'Vegetation', value: 'Sentinel-2 L2A', source: DATA_SOURCES.sentinelCogs },
+  { label: 'Soil', value: 'SoilGrids v2.0', source: DATA_SOURCES.soilGrids },
+  { label: 'Weather', value: 'Open-Meteo', source: DATA_SOURCES.openMeteoArchive },
+];
 
 export default function EarthExplorerPage(): JSX.Element {
   const [pendingField, setPendingField] = useState<Field | null>(null);
   const [mode, setMode] = useState<Mode>('explore');
   const searchOpen = useSearchStore((s) => s.open);
   const setSearchOpen = useSearchStore((s) => s.setOpen);
-  const isGlobalView = useMapStore((s) => s.isGlobalView);
-  const basemap = useMapStore((s) => s.basemap);
   const resetDraw = useDrawStore((s) => s.reset);
-  const fieldsCount = useFieldsStore((s) => s.fields.length);
+  const fields = useFieldsStore((s) => s.fields);
+  const selectField = useFieldsStore((s) => s.selectField);
+  const selectedFieldId = useFieldsStore((s) => s.selectedFieldId);
+  const basemap = useMapStore((s) => s.basemap);
 
   const handleFieldCreated = useCallback((field: Field) => {
     setPendingField(field);
@@ -52,137 +60,91 @@ export default function EarthExplorerPage(): JSX.Element {
   return (
     <div className="relative flex size-full min-h-0">
       <div className="relative min-w-0 flex-1">
-        <DrawingWorkspace onFieldCreated={handleFieldCreated} />
+        <DrawingWorkspace onFieldCreated={handleFieldCreated} onOpenSearch={() => setSearchOpen(true)} />
 
-        {/* -------------------------------------------------- contextual side rail */}
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-20 flex items-start justify-end p-3 sm:p-4">
+        {/* ------------------------------------------------ floating info rail */}
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 hidden items-start justify-end p-4 md:flex">
           <AnimatePresence>
             {!searchOpen ? (
               <motion.div
                 key="rail"
-                initial={{ opacity: 0, x: 16 }}
+                initial={{ opacity: 0, x: 18 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 16 }}
+                exit={{ opacity: 0, x: 18 }}
                 transition={{ duration: 0.22 }}
-                className="pointer-events-auto hidden w-[268px] flex-col gap-2.5 md:flex"
+                className="pointer-events-auto flex w-[272px] flex-col gap-2.5 pt-20"
               >
-                <div className="rounded-xl border border-white/10 bg-forest-950/82 p-3.5 shadow-float backdrop-blur">
-                  <div className="flex items-center gap-2">
-                    <Info className="size-3.5 text-lime" aria-hidden />
-                    <h2 className="text-xs font-semibold text-cream">How to read this view</h2>
-                  </div>
-                  <Separator className="my-2.5 bg-white/10" />
-                  <ol className="space-y-2 text-2xs leading-relaxed text-cream/70">
-                    <li className="flex gap-2">
-                      <span className="font-mono text-lime">1</span>
-                      <span>Drag to rotate the globe. Scroll or pinch to zoom toward your region.</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="font-mono text-lime">2</span>
-                      <span>Select Draw Field to lock panning and switch the cursor to a pencil.</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="font-mono text-lime">3</span>
-                      <span>Click each corner of the farm. Triangles, rectangles and irregular boundaries all work.</span>
-                    </li>
-                    <li className="flex gap-2">
-                      <span className="font-mono text-lime">4</span>
-                      <span>Close the polygon to compute its geodesic area and start the analysis.</span>
-                    </li>
-                  </ol>
+                <div className="chrome p-4">
+                  <RegionList
+                    fields={fields}
+                    selectedFieldId={selectedFieldId}
+                    onSelect={selectField}
+                    onAddFarm={() => setSearchOpen(true)}
+                  />
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-forest-950/82 p-3.5 shadow-float backdrop-blur">
-                  <h2 className="text-xs font-semibold text-cream">Live data sources</h2>
-                  <Separator className="my-2.5 bg-white/10" />
-                  <ul className="space-y-2 text-2xs text-cream/70">
-                    <li className="flex items-center justify-between gap-2">
-                      <span>Basemap</span>
-                      <Badge variant={HAS_MAPBOX_TOKEN ? 'lime' : 'muted'}>
-                        {HAS_MAPBOX_TOKEN ? 'Mapbox' : 'Sentinel-2'}
-                      </Badge>
-                    </li>
-                    <li className="flex items-center justify-between gap-2">
-                      <span>Vegetation</span>
-                      <Badge variant="lime">Sentinel-2 L2A</Badge>
-                    </li>
-                    <li className="flex items-center justify-between gap-2">
-                      <span>Soil</span>
-                      <Badge variant="lime">SoilGrids v2.0</Badge>
-                    </li>
-                    <li className="flex items-center justify-between gap-2">
-                      <span>Climate</span>
-                      <Badge variant="lime">Open-Meteo</Badge>
-                    </li>
-                    <li className="flex items-center justify-between gap-2">
-                      <span>Crop rules</span>
-                      <Badge variant="warning">Demo dataset</Badge>
-                    </li>
+                <div className="chrome p-4">
+                  <div className="flex items-center gap-2">
+                    <Database className="size-3.5 text-lime" aria-hidden />
+                    <h2 className="type-section text-cream">Open data sources</h2>
+                  </div>
+                  <ul className="mt-3 space-y-2">
+                    {SOURCE_PILLS.map((pill) => (
+                      <li key={pill.label} className="flex items-center justify-between gap-2">
+                        <span className="text-2xs text-cream/60">{pill.label}</span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="text-2xs font-medium text-cream/85">{pill.value}</span>
+                          <span className="size-1.5 rounded-full bg-lime" aria-hidden />
+                        </span>
+                      </li>
+                    ))}
                   </ul>
-                  <p className="mt-2.5 text-[0.6875rem] leading-relaxed text-cream/50">
-                    {isGlobalView
-                      ? 'You are in the global Earth view. Zoom in to reach field scale.'
-                      : `Viewing ${basemap.replace('-', ' ')} at field scale.`}
+                  <p className="mt-3 border-t border-white/[0.08] pt-2.5 text-2xs leading-relaxed text-cream/45">
+                    Keyless and open-licensed. Crop rules run on a labelled demonstration dataset.
                   </p>
                 </div>
-
-                <Button
-                  variant="shell"
-                  size="sm"
-                  className="border border-white/10"
-                  onClick={() => setSearchOpen(true)}
-                >
-                  <PanelRightOpen className="size-3.5" />
-                  Open location search
-                </Button>
               </motion.div>
             ) : null}
           </AnimatePresence>
         </div>
 
-        {/* ------------------------------------------------------------ search panel */}
+        {/* ------------------------------------------------------ status bar */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 hidden justify-center p-4 md:flex">
+          <MapStatusBar
+            className="pointer-events-auto max-w-[900px]"
+            fields={fields.length}
+            basemapLabel={BASEMAPS[basemap]?.label ?? basemap}
+            imageryLabel="Sentinel-2 cloudless (EOX)"
+            selectedField={fields.find((f) => f.id === selectedFieldId) ?? null}
+          />
+        </div>
+
+        {/* ---------------------------------------------------- search slide-over */}
         <AnimatePresence>
           {searchOpen ? (
             <motion.aside
-              initial={{ x: 320, opacity: 0 }}
+              initial={{ x: 340, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 320, opacity: 0 }}
-              transition={{ type: 'spring', damping: 32, stiffness: 320 }}
-              className="absolute inset-y-0 right-0 z-30 w-full max-w-[340px] border-l border-border/70 bg-card shadow-float"
+              exit={{ x: 340, opacity: 0 }}
+              transition={{ type: 'spring', damping: 34, stiffness: 340 }}
+              className="absolute inset-y-0 right-0 z-30 w-full max-w-[360px] border-l border-border/70 bg-card shadow-float"
             >
               <SearchPanel />
             </motion.aside>
           ) : null}
         </AnimatePresence>
 
-        {!searchOpen ? (
-          <Button
-            variant="shell"
-            size="icon-sm"
-            className="absolute right-3 top-16 z-20 border border-white/10 md:hidden"
-            onClick={() => setSearchOpen(true)}
-            aria-label="Open location search"
+        {searchOpen ? (
+          <button
+            type="button"
+            className="fixed inset-0 z-20 bg-forest-950/50 backdrop-blur-[2px] md:hidden"
+            onClick={() => setSearchOpen(false)}
+            aria-label="Close search panel"
           >
-            <PanelRightClose className="size-3.5 rotate-180" />
-          </Button>
+            <X className="sr-only" />
+          </button>
         ) : null}
       </div>
-
-      {/* --------------------------------------------------------- mobile hint strip */}
-      <div className="sr-only" aria-live="polite">
-        {fieldsCount > 0 ? `${fieldsCount} saved fields available.` : 'No saved fields yet.'}
-      </div>
-
-      {searchOpen ? (
-        <button
-          type="button"
-          className="fixed inset-0 z-20 bg-forest-950/40 backdrop-blur-[2px] md:hidden"
-          onClick={() => setSearchOpen(false)}
-          aria-label="Close search panel"
-        >
-          <X className="sr-only" />
-        </button>
-      ) : null}
     </div>
   );
 }

@@ -34,20 +34,23 @@ export function useFieldIntelligence(options: { autoRun?: boolean } = {}): UseFi
   const analysis = useAnalysisStore();
   const intelligence = selectIntelligence(analysis);
 
-  const abortRef = useRef<AbortController | null>(null);
   const inFlightRef = useRef<string | null>(null);
 
+  /**
+   * Runs the pipeline without an AbortController. The result is keyed by field id in
+   * the analysis store, so a run must survive the component unmounting — navigating
+   * between intelligence sections mid-analysis previously cancelled the in-flight
+   * Sentinel-2 fetch and surfaced a spurious "request was cancelled" result.
+   */
   const execute = useCallback(
     (target: Field) => {
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
+      if (inFlightRef.current === target.id) return;
       inFlightRef.current = target.id;
 
       analysis.begin(target);
       updateField(target.id, { status: 'analyzing' });
 
-      runFieldAnalysis(target, { onStage: analysis.patchStage, signal: controller.signal })
+      runFieldAnalysis(target, { onStage: analysis.patchStage })
         .then((outcome) => {
           analysis.finish(outcome);
           updateField(target.id, {
@@ -56,7 +59,6 @@ export function useFieldIntelligence(options: { autoRun?: boolean } = {}): UseFi
           });
         })
         .catch((error: unknown) => {
-          if (controller.signal.aborted) return;
           analysis.fail(error instanceof Error ? error.message : 'The analysis pipeline failed.');
           updateField(target.id, { status: 'error' });
         })
@@ -78,7 +80,6 @@ export function useFieldIntelligence(options: { autoRun?: boolean } = {}): UseFi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRun, field?.id, field?.createdAt, analysis.fieldId, analysis.completed, analysis.running]);
 
-  useEffect(() => () => abortRef.current?.abort(), []);
 
   const run = useCallback(() => {
     if (field) execute(field);

@@ -91,7 +91,7 @@ export async function buildFieldSnapshot(
   canvas.height = height;
   const context = canvas.getContext('2d');
   if (!context) return null;
-  context.fillStyle = '#001F19';
+  context.fillStyle = '#020d05';
   context.fillRect(0, 0, canvasWidth, height);
 
   const n = 2 ** zoom;
@@ -185,16 +185,16 @@ export async function drawSnapshotOverlay(
 
   context.beginPath();
   traceRing(field.boundary.coords);
-  context.strokeStyle = '#A8E600';
+  context.strokeStyle = '#9edb02';
   context.lineWidth = 3;
   context.stroke();
 
   const centroid = snapshot.project(field.boundary.centroid);
   context.beginPath();
   context.arc(centroid.x, centroid.y, 5, 0, Math.PI * 2);
-  context.fillStyle = '#A8E600';
+  context.fillStyle = '#9edb02';
   context.fill();
-  context.strokeStyle = '#003B2F';
+  context.strokeStyle = '#01392b';
   context.lineWidth = 2;
   context.stroke();
 

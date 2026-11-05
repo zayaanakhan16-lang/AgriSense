@@ -2,58 +2,66 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * AgriSense design system.
+ * Brand: forest #01392b · lime #9edb02 · light lime #d7fa54 · accent #6ed301
+ *        deep forest #01261b · near-black #020d05 · olive #5f8525 · earth #264310
+ */
+
 @layer base {
   :root {
-    --background: 84 24% 96%;
-    --foreground: 168 100% 12%;
-    --card: 0 0% 100%;
-    --card-foreground: 168 100% 12%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 168 100% 12%;
-    --primary: 166 100% 12%;
-    --primary-foreground: 84 24% 97%;
-    --secondary: 84 20% 92%;
-    --secondary-foreground: 166 100% 12%;
-    --muted: 84 16% 92%;
-    --muted-foreground: 156 10% 40%;
-    --accent: 76 100% 45%;
-    --accent-foreground: 168 100% 10%;
-    --destructive: 0 66% 50%;
+    /* Light "ivory workspace" surfaces (FireSight-style warm paper). */
+    --background: 55 30% 96%;
+    --foreground: 165 96% 12%;
+    --card: 50 40% 99%;
+    --card-foreground: 165 96% 12%;
+    --popover: 50 40% 99%;
+    --popover-foreground: 165 96% 12%;
+    --primary: 165 96% 12%;
+    --primary-foreground: 55 30% 97%;
+    --secondary: 60 24% 92%;
+    --secondary-foreground: 165 96% 12%;
+    --muted: 60 18% 92%;
+    --muted-foreground: 150 12% 36%;
+    --accent: 77 98% 43%;
+    --accent-foreground: 165 96% 9%;
+    --destructive: 5 62% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 156 12% 86%;
-    --input: 156 12% 86%;
-    --ring: 76 100% 45%;
+    --border: 150 12% 85%;
+    --input: 150 12% 85%;
+    --ring: 77 98% 43%;
     --radius: 0.75rem;
 
-    --shell: 168 100% 7%;
-    --shell-foreground: 84 24% 95%;
-    --shell-muted: 158 22% 62%;
+    /* Dark "shell" surfaces (navigation, floating GIS chrome). */
+    --shell: 166 95% 11%;
+    --shell-foreground: 55 30% 96%;
+    --shell-muted: 150 22% 60%;
   }
 
   .dark {
-    --background: 168 100% 6%;
-    --foreground: 84 24% 95%;
-    --card: 168 62% 8%;
-    --card-foreground: 84 24% 95%;
-    --popover: 168 74% 8%;
-    --popover-foreground: 84 24% 95%;
-    --primary: 76 100% 45%;
-    --primary-foreground: 168 100% 9%;
-    --secondary: 166 42% 14%;
-    --secondary-foreground: 84 24% 95%;
-    --muted: 166 30% 15%;
-    --muted-foreground: 150 14% 64%;
-    --accent: 76 100% 45%;
-    --accent-foreground: 168 100% 9%;
-    --destructive: 4 74% 56%;
+    --background: 165 96% 6%;
+    --foreground: 55 30% 96%;
+    --card: 166 78% 8%;
+    --card-foreground: 55 30% 96%;
+    --popover: 166 84% 8%;
+    --popover-foreground: 55 30% 96%;
+    --primary: 77 98% 43%;
+    --primary-foreground: 165 96% 8%;
+    --secondary: 166 46% 13%;
+    --secondary-foreground: 55 30% 96%;
+    --muted: 166 32% 14%;
+    --muted-foreground: 150 16% 66%;
+    --accent: 77 98% 43%;
+    --accent-foreground: 165 96% 8%;
+    --destructive: 5 68% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 166 30% 18%;
-    --input: 166 30% 20%;
-    --ring: 76 100% 45%;
+    --border: 166 32% 17%;
+    --input: 166 32% 19%;
+    --ring: 77 98% 43%;
 
-    --shell: 170 100% 5%;
-    --shell-foreground: 84 24% 95%;
-    --shell-muted: 156 18% 60%;
+    --shell: 166 96% 8%;
+    --shell-foreground: 55 30% 96%;
+    --shell-muted: 150 18% 62%;
   }
 
   * {
@@ -73,15 +81,24 @@
     overscroll-behavior: none;
   }
 
+  /* Tabular numerals for every measurement, stat and coordinate. */
+  .tabular-nums,
+  .font-mono,
+  dd,
+  output,
+  time {
+    font-variant-numeric: tabular-nums;
+  }
+
   ::selection {
-    background: rgba(168, 230, 0, 0.32);
+    background: rgba(158, 219, 2, 0.3);
   }
 
   h1,
   h2,
   h3,
   h4 {
-    @apply font-display tracking-tight;
+    @apply font-display tracking-[-0.015em];
   }
 
   :focus-visible {
@@ -96,18 +113,43 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(95, 115, 104, 0.35);
+    background: rgba(95, 133, 37, 0.35);
     border-radius: 999px;
     border: 3px solid transparent;
     background-clip: content-box;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(95, 115, 104, 0.6);
+    background: rgba(95, 133, 37, 0.6);
     background-clip: content-box;
   }
 }
 
 @layer components {
+  /* ------------------------------------------------ type scale utilities */
+  .type-display {
+    @apply font-display font-semibold tracking-[-0.02em];
+  }
+  .type-title {
+    @apply font-display text-[1.375rem] font-semibold leading-tight tracking-[-0.02em] sm:text-[1.5rem];
+  }
+  .type-section {
+    @apply font-display text-sm font-semibold leading-tight tracking-[-0.01em];
+  }
+  .type-body {
+    @apply text-[0.8125rem] leading-relaxed;
+  }
+  .type-meta {
+    @apply text-2xs leading-relaxed text-muted-foreground;
+  }
+  .type-measure {
+    @apply font-mono text-lg font-semibold tabular-nums tracking-[-0.01em];
+  }
+
+  .label-caps {
+    @apply text-3xs font-semibold uppercase tracking-[0.16em] text-muted-foreground;
+  }
+
+  /* --------------------------------------------------------- surfaces */
   .surface {
     @apply rounded-xl border border-border/70 bg-card shadow-panel;
   }
@@ -118,8 +160,16 @@
     @apply rounded-xl border border-white/10 shadow-float;
   }
 
+  /* Floating dark chrome used over the globe and satellite map. */
+  .chrome {
+    background: linear-gradient(180deg, rgba(1, 38, 27, 0.88), rgba(2, 13, 5, 0.92));
+    border: 1px solid rgba(215, 250, 84, 0.14);
+    backdrop-filter: blur(14px) saturate(130%);
+    @apply rounded-xl shadow-float;
+  }
+
   .shell-panel {
-    background: hsl(var(--shell));
+    background: linear-gradient(180deg, #01392b 0%, #01261b 62%, #020d05 100%);
     color: hsl(var(--shell-foreground));
   }
 
@@ -127,17 +177,21 @@
     @apply font-mono text-2xl font-semibold tabular-nums tracking-tight;
   }
 
-  .label-caps {
-    @apply text-2xs font-semibold uppercase tracking-[0.14em] text-muted-foreground;
-  }
-
   .hairline {
     @apply h-px w-full bg-gradient-to-r from-transparent via-border to-transparent;
   }
 
   .grid-noise {
-    background-image: radial-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+    background-image: radial-gradient(rgba(158, 219, 2, 0.05) 1px, transparent 1px);
     background-size: 22px 22px;
+  }
+
+  /* Faint graticule used behind the globe during load. */
+  .graticule {
+    background-image:
+      linear-gradient(rgba(215, 250, 84, 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(215, 250, 84, 0.055) 1px, transparent 1px);
+    background-size: 64px 64px;
   }
 
   .skeleton {
@@ -160,22 +214,33 @@
   .text-balance {
     text-wrap: balance;
   }
+  /* Renders the wordmark gradient used in the AgriSense logotype. */
+  .text-brand-gradient {
+    background: linear-gradient(92deg, #d7fa54 0%, #9edb02 55%, #6ed301 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
 }
 
-/* ---- Field drawing: pencil cursor ---------------------------------------- */
+/* ---- Field drawing: precise pencil cursor --------------------------------
+   Small (20px), sharp vector pencil whose tip sits exactly on the hotspot so
+   it tracks the pointer with no perceptible offset. No circular background,
+   no glow — only the shape itself. Applied ONLY while the draw tool is active.
+   ------------------------------------------------------------------------- */
 .cursor-pencil,
 .cursor-pencil * {
   cursor:
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='34' height='34' viewBox='0 0 34 34'><g transform='rotate(45 17 17)'><rect x='12' y='2' width='10' height='19' rx='1.6' fill='%23A8E600' stroke='%23003B2F' stroke-width='1.6'/><rect x='12' y='2' width='10' height='4.5' rx='1.2' fill='%23D7FF54' stroke='%23003B2F' stroke-width='1.2'/><path d='M12 21 h10 l-5 8 z' fill='%23F7F7EF' stroke='%23003B2F' stroke-width='1.6' stroke-linejoin='round'/><path d='M14.6 25.4 h4.8 l-2.4 3.6 z' fill='%23003B2F'/></g><circle cx='17' cy='17' r='15.2' fill='none' stroke='%23003B2F' stroke-opacity='0.25' stroke-width='1'/></svg>")
-      2 30,
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'><path d='M1 1 L5 1.9 L15.1 12 L11.2 15.9 L1.1 5.8 Z' fill='%239edb02' stroke='%2301261b' stroke-width='1.1' stroke-linejoin='round'/><path d='M11.2 15.9 L15.1 12 L17.4 14.3 L13.5 18.2 Z' fill='%23d7fa54' stroke='%2301261b' stroke-width='1.1' stroke-linejoin='round'/><path d='M1 1 L5 1.9 L3 3.9 Z' fill='%2301261b'/></svg>")
+      1 1,
     crosshair;
 }
 
 .cursor-pencil-active,
 .cursor-pencil-active * {
   cursor:
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='34' height='34' viewBox='0 0 34 34'><g transform='rotate(45 17 17)'><rect x='12' y='2' width='10' height='19' rx='1.6' fill='%23A8E600' stroke='%23003B2F' stroke-width='1.6'/><rect x='12' y='2' width='10' height='4.5' rx='1.2' fill='%23D7FF54' stroke='%23003B2F' stroke-width='1.2'/><path d='M12 21 h10 l-5 8 z' fill='%23F7F7EF' stroke='%23003B2F' stroke-width='1.6' stroke-linejoin='round'/><path d='M14.6 25.4 h4.8 l-2.4 3.6 z' fill='%23003B2F'/></g><circle cx='17' cy='17' r='14.6' fill='none' stroke='%23A8E600' stroke-width='2'/></svg>")
-      2 30,
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'><path d='M1 1 L5 1.9 L15.1 12 L11.2 15.9 L1.1 5.8 Z' fill='%23d7fa54' stroke='%2301261b' stroke-width='1.1' stroke-linejoin='round'/><path d='M11.2 15.9 L15.1 12 L17.4 14.3 L13.5 18.2 Z' fill='%239edb02' stroke='%2301261b' stroke-width='1.1' stroke-linejoin='round'/><path d='M1 1 L5 1.9 L3 3.9 Z' fill='%2301261b'/></svg>")
+      1 1,
     crosshair;
 }
 
@@ -186,16 +251,20 @@
 
 /* ---- MapLibre: remove default chrome, keep attribution readable ---------- */
 .maplibregl-ctrl-attrib {
-  background: rgba(0, 31, 25, 0.62) !important;
-  color: rgba(247, 247, 239, 0.78) !important;
+  background: rgba(2, 13, 5, 0.62) !important;
+  color: rgba(246, 245, 234, 0.78) !important;
   font-size: 10px !important;
   border-radius: 6px 0 0 0;
 }
 .maplibregl-ctrl-attrib a {
-  color: rgba(215, 255, 84, 0.9) !important;
+  color: rgba(215, 250, 84, 0.9) !important;
 }
 .maplibregl-canvas:focus {
   outline: none;
+}
+/* Hide the default zoom buttons — AgriSense draws its own floating controls. */
+.maplibregl-ctrl-group {
+  display: none !important;
 }
 
 @keyframes agrisense-scan {

@@ -84,7 +84,7 @@ export function MetricTile({
 }): JSX.Element {
   const tones = {
     default: 'text-foreground',
-    positive: 'text-lime-300',
+    positive: 'text-lime',
     warning: 'text-amber-300',
     danger: 'text-red-300',
     muted: 'text-muted-foreground',
@@ -117,13 +117,13 @@ export function StageStatusStrip({ stages }: { stages: AnalysisStage[] }): JSX.E
       {stages.map((stage) => {
         const tone =
           stage.state === 'done'
-            ? 'border-lime/35 bg-lime/10 text-lime-200'
+            ? 'border-lime-600/40 bg-lime/15 text-lime'
             : stage.state === 'active'
-              ? 'border-lime/50 bg-lime/15 text-lime'
+              ? 'border-lime-600/55 bg-lime/20 text-lime'
               : stage.state === 'unavailable'
-                ? 'border-amber-500/30 bg-amber-500/10 text-amber-200'
+                ? 'border-amber-600/35 bg-amber-500/10 text-amber-300'
                 : stage.state === 'error'
-                  ? 'border-red-500/30 bg-red-500/10 text-red-200'
+                  ? 'border-red-600/35 bg-red-500/10 text-red-300'
                   : 'border-border/60 bg-muted/40 text-muted-foreground';
         return (
           <span
@@ -189,8 +189,8 @@ export function FieldHeaderCard({
 export function AnalysisErrorBanner({ message, onRetry }: { message: string; onRetry?: () => void }): JSX.Element {
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/[0.07] px-4 py-3">
-      <AlertTriangle className="size-4 shrink-0 text-red-400" />
-      <p className="min-w-0 flex-1 text-xs leading-relaxed text-red-100">{message}</p>
+      <AlertTriangle className="size-4 shrink-0 text-red-600" />
+      <p className="min-w-0 flex-1 text-xs leading-relaxed text-red-900">{message}</p>
       {onRetry ? (
         <Button variant="outline" size="sm" onClick={onRetry}>
           <RefreshCw className="size-3.5" />

@@ -262,7 +262,7 @@ export function FactorRadar({
         <RadarChart data={data} outerRadius="72%">
           <PolarGrid stroke={GRID_STROKE} />
           <PolarAngleAxis dataKey="factor" tick={{ fill: 'rgba(247,247,239,0.6)', fontSize: 10 }} />
-          <Radar dataKey="score" stroke="#A8E600" fill="#A8E600" fillOpacity={0.28} strokeWidth={1.8} />
+          <Radar dataKey="score" stroke="#9edb02" fill="#9edb02" fillOpacity={0.28} strokeWidth={1.8} />
           <RechartsTooltip content={<ChartTooltip valueFormatter={(v) => `${Math.round(v * 100)}%`} />} />
         </RadarChart>
       </ResponsiveContainer>
@@ -310,7 +310,7 @@ export function AllocationDonut({
 
 export function Sparkline({
   values,
-  color = '#A8E600',
+  color = '#9edb02',
   height = 34,
   className,
 }: {

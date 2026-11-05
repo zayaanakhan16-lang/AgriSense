@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { LngLat } from '@/types';
 import { polygonAreaM2, perimeterM, bboxOf, centroidOf, closeRing, haversineM } from '@/lib/geo';
 
-export type DrawMode = 'idle' | 'drawing' | 'closed';
+export type DrawMode = 'idle' | 'drawing' | 'closed' | 'editing';
 
 interface DrawState {
   mode: DrawMode;
@@ -10,6 +10,8 @@ interface DrawState {
   points: LngLat[];
   /** Live cursor position used to render the rubber-band segment. */
   hover: LngLat | null;
+  /** Index of the vertex currently being dragged while editing. */
+  activeVertex: number | null;
   /** Minimum geodesic distance (m) between consecutive vertices. */
   minVertexSpacingM: number;
   start: () => void;
@@ -19,15 +21,23 @@ interface DrawState {
   cancel: () => void;
   close: () => void;
   reset: () => void;
+  /* vertex editing */
+  startEditing: () => void;
+  finishEditing: () => void;
+  setActiveVertex: (index: number | null) => void;
+  moveVertex: (index: number, point: LngLat) => void;
+  removeVertex: (index: number) => void;
+  insertVertex: (afterIndex: number, point: LngLat) => void;
 }
 
 export const useDrawStore = create<DrawState>((set, get) => ({
   mode: 'idle',
   points: [],
   hover: null,
+  activeVertex: null,
   minVertexSpacingM: 1.5,
 
-  start: () => set({ mode: 'drawing', points: [], hover: null }),
+  start: () => set({ mode: 'drawing', points: [], hover: null, activeVertex: null }),
 
   addPoint: (point) => {
     const { points, mode, minVertexSpacingM } = get();
@@ -45,15 +55,47 @@ export const useDrawStore = create<DrawState>((set, get) => ({
       return { points: state.points.slice(0, -1) };
     }),
 
-  cancel: () => set({ mode: 'idle', points: [], hover: null }),
+  cancel: () => set({ mode: 'idle', points: [], hover: null, activeVertex: null }),
 
   close: () => {
     const { points } = get();
     if (points.length < 3) return;
-    set({ mode: 'closed', points, hover: null });
+    set({ mode: 'closed', points, hover: null, activeVertex: null });
   },
 
-  reset: () => set({ mode: 'idle', points: [], hover: null }),
+  reset: () => set({ mode: 'idle', points: [], hover: null, activeVertex: null }),
+
+  startEditing: () => {
+    const { points, mode } = get();
+    if (points.length < 3 || (mode !== 'closed' && mode !== 'editing')) return;
+    set({ mode: 'editing', activeVertex: null });
+  },
+
+  finishEditing: () => set({ mode: 'closed', activeVertex: null }),
+
+  setActiveVertex: (index) => set({ activeVertex: index }),
+
+  moveVertex: (index, point) =>
+    set((state) => {
+      if (index < 0 || index >= state.points.length) return state;
+      const points = [...state.points];
+      points[index] = point;
+      return { points };
+    }),
+
+  removeVertex: (index) =>
+    set((state) => {
+      if (state.points.length <= 3) return state;
+      const points = state.points.filter((_, i) => i !== index);
+      return { points, activeVertex: null };
+    }),
+
+  insertVertex: (afterIndex, point) =>
+    set((state) => {
+      const points = [...state.points];
+      points.splice(afterIndex + 1, 0, point);
+      return { points };
+    }),
 }));
 
 export interface DrawMetrics {

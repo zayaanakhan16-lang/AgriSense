@@ -116,7 +116,7 @@ export function SearchPanel(): JSX.Element {
           <section className="mb-5">
             <h3 className="label-caps mb-2">Places</h3>
             {isError ? (
-              <p className="rounded-lg border border-amber-500/25 bg-amber-500/[0.07] px-3 py-2 text-2xs leading-relaxed text-amber-100">
+              <p className="rounded-lg border border-amber-500/25 bg-amber-500/[0.07] px-3 py-2 text-2xs leading-relaxed text-amber-900">
                 Place search is unavailable right now. The OpenStreetMap Nominatim service could not be reached — you can
                 still navigate the globe directly and draw a field.
               </p>

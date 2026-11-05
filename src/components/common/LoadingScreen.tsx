@@ -1,25 +1,34 @@
 import { LogoMark } from '@/components/brand/Logo';
 
-export function LoadingScreen({ message = 'Preparing Earth intelligence' }: { message?: string }): JSX.Element {
+/**
+ * Route-level suspense fallback. Intentionally minimal: no full-screen logo
+ * animation, no artificial delay, no fake progress. The shell is already
+ * mounted when this appears, so it only fills the content area briefly while
+ * a lazily-loaded route chunk resolves.
+ */
+export function LoadingScreen({ message = 'Loading workspace' }: { message?: string }): JSX.Element {
   return (
-    <div className="relative flex h-full min-h-[60vh] w-full items-center justify-center overflow-hidden bg-forest-950">
-      <div className="pointer-events-none absolute inset-0 grid-noise opacity-40" />
-      <div className="pointer-events-none absolute left-1/2 top-1/2 size-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-lime/[0.06] blur-3xl" />
-      <div className="relative flex flex-col items-center gap-5">
-        <div className="relative">
-          <span className="absolute inset-0 animate-pulse-ring rounded-2xl border border-lime/40" />
-          <LogoMark className="size-14 rounded-2xl shadow-float" />
-        </div>
-        <div className="text-center">
-          <p className="font-display text-lg font-semibold text-cream">
-            Agri<span className="text-lime">Sense</span>
-          </p>
-          <p className="mt-1 text-2xs uppercase tracking-[0.18em] text-shell-muted">{message}</p>
-        </div>
-        <div className="h-0.5 w-40 overflow-hidden rounded-full bg-white/10">
-          <div className="h-full w-1/3 animate-[agrisense-scan_1.6s_ease-in-out_infinite] rounded-full bg-lime" />
-        </div>
+    <div className="flex h-full min-h-[40vh] w-full items-center justify-center bg-background">
+      <div className="flex items-center gap-3 text-muted-foreground">
+        <span className="relative flex size-5 items-center justify-center">
+          <span className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-lime-600" />
+        </span>
+        <span className="text-xs font-medium">{message}…</span>
       </div>
     </div>
   );
 }
+
+/** Compact inline indicator for a loading panel or map. */
+export function MapLoadingIndicator({ label = 'Loading imagery' }: { label?: string }): JSX.Element {
+  return (
+    <div className="flex items-center gap-2 text-2xs text-cream/60">
+      <span className="relative flex size-3.5 items-center justify-center">
+        <span className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-lime" />
+      </span>
+      <span>{label}…</span>
+    </div>
+  );
+}
+
+export { LogoMark };

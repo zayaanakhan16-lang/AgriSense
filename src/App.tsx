@@ -12,6 +12,7 @@ const VegetationPage = lazy(() => import('@/features/vegetation/VegetationPage')
 const SoilPage = lazy(() => import('@/features/soil/SoilPage'));
 const ClimatePage = lazy(() => import('@/features/climate/ClimatePage'));
 const CropPlanningPage = lazy(() => import('@/features/crops/CropPlanningPage'));
+const CropStudioPage = lazy(() => import('@/features/studio/CropStudioPage'));
 const SeasonalCalendarPage = lazy(() => import('@/features/calendar/SeasonalCalendarPage'));
 const DecisionCenterPage = lazy(() => import('@/features/decision/DecisionCenterPage'));
 const ReportsPage = lazy(() => import('@/features/reports/ReportsPage'));
@@ -40,6 +41,7 @@ export default function App(): JSX.Element {
               <Route path="soil" element={<SoilPage />} />
               <Route path="climate" element={<ClimatePage />} />
               <Route path="crops" element={<CropPlanningPage />} />
+              <Route path="studio" element={<CropStudioPage />} />
               <Route path="calendar" element={<SeasonalCalendarPage />} />
               <Route path="decision" element={<DecisionCenterPage />} />
               <Route path="reports" element={<ReportsPage />} />

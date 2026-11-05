@@ -201,7 +201,7 @@ export default function VegetationPage(): JSX.Element {
                   <BarSeriesChart
                     data={distribution}
                     xKey="band"
-                    series={[{ key: 'share', name: 'Share of field', color: '#A8E600' }]}
+                    series={[{ key: 'share', name: 'Share of field', color: '#9edb02' }]}
                     height={170}
                     formatValue={(value) => `${value.toFixed(1)}%`}
                   />

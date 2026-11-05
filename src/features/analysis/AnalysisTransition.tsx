@@ -180,7 +180,7 @@ export function AnalysisTransition({ field, onComplete, onCancel }: AnalysisTran
               </div>
               <Progress value={progress.fraction * 100} className="bg-white/10" />
               {unavailableCount > 0 ? (
-                <p className="mt-2 flex items-center gap-1.5 text-2xs text-amber-200/80">
+                <p className="mt-2 flex items-center gap-1.5 text-2xs text-amber-900/80">
                   <AlertTriangle className="size-3" />
                   {unavailableCount} operation{unavailableCount === 1 ? '' : 's'} could not complete and{' '}
                   {unavailableCount === 1 ? 'is' : 'are'} reported honestly below.
@@ -204,8 +204,8 @@ export function AnalysisTransition({ field, onComplete, onCancel }: AnalysisTran
                   className="mt-4 overflow-hidden"
                 >
                   <div className="rounded-lg border border-red-500/30 bg-red-500/[0.07] p-3.5">
-                    <p className="text-xs font-semibold text-red-200">Analysis could not complete</p>
-                    <p className="mt-1 text-2xs leading-relaxed text-red-200/80">{error}</p>
+                    <p className="text-xs font-semibold text-red-300">Analysis could not complete</p>
+                    <p className="mt-1 text-2xs leading-relaxed text-red-300/80">{error}</p>
                   </div>
                 </motion.div>
               ) : null}

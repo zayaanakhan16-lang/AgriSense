@@ -26,7 +26,7 @@ import {
 } from '@/services/planning';
 import { areaInAcres } from '@/lib/format';
 
-export const ZONE_COLORS = ['#A8E600', '#D7FF54', '#0A6A4F', '#3E9E7C', '#C2F03A'];
+export const ZONE_COLORS = ['#9edb02', '#d7fa54', '#01392b', '#5f8525', '#d7fa54'];
 
 export interface StagePatch {
   state?: StageState;

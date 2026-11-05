@@ -196,7 +196,7 @@ export default function ClimatePage(): JSX.Element {
                       </h4>
                       <TimeSeriesChart
                         data={series}
-                        series={[{ key: 'et0', name: 'ET₀', color: '#A8E600' }]}
+                        series={[{ key: 'et0', name: 'ET₀', color: '#9edb02' }]}
                         area
                         height={170}
                         formatValue={(value) => `${value.toFixed(2)} mm`}
@@ -249,8 +249,8 @@ export default function ClimatePage(): JSX.Element {
                       deep: entry.deep,
                     }))}
                     series={[
-                      { key: 'surface', name: '0–7 cm', color: '#A8E600' },
-                      { key: 'deep', name: '28–100 cm', color: '#3E9E7C' },
+                      { key: 'surface', name: '0–7 cm', color: '#9edb02' },
+                      { key: 'deep', name: '28–100 cm', color: '#5f8525' },
                     ]}
                     area
                     height={220}

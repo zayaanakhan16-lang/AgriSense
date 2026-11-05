@@ -1,16 +1,15 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  BarChart3,
   CalendarDays,
-  ChevronLeft,
   Compass,
   Droplets,
   FileText,
   Globe2,
   Layers3,
   Leaf,
+  MapPinned,
   Menu,
   Mountain,
   Sparkles,
@@ -18,34 +17,33 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Logo } from '@/components/brand/Logo';
-import { Badge } from '@/components/ui/badge';
+import { Logo, LogoMark } from '@/components/brand/Logo';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
-import { SATELLITE_ATTRIBUTION } from '@/services/sources';
-import { HAS_MAPBOX_TOKEN } from '@/components/map/earthMapSetup';
 import { FieldContextBar } from '@/components/common/FieldContextBar';
+import { SectionNav } from '@/components/layout/SectionNav';
 
 interface NavItem {
   to: string;
   label: string;
+  short: string;
   icon: typeof Globe2;
   group: 'explore' | 'intelligence' | 'plan' | 'output';
   description: string;
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: 'Earth Explorer', icon: Globe2, group: 'explore', description: 'Interactive 3D Earth and field drawing' },
-  { to: '/fields', label: 'My Fields', icon: Layers3, group: 'explore', description: 'Saved field boundaries' },
-  { to: '/intelligence', label: 'Field Intelligence', icon: Compass, group: 'intelligence', description: 'Overview, boundary and satellite preview' },
-  { to: '/vegetation', label: 'Vegetation & NDVI', icon: Leaf, group: 'intelligence', description: 'Sentinel-2 vegetation health' },
-  { to: '/soil', label: 'Soil Intelligence', icon: Mountain, group: 'intelligence', description: 'SoilGrids properties and texture' },
-  { to: '/climate', label: 'Climate Intelligence', icon: Droplets, group: 'intelligence', description: 'Rainfall, temperature, ET₀ and moisture' },
-  { to: '/crops', label: 'Crop Planning', icon: Sprout, group: 'plan', description: 'Rules-first crop suitability and zoning' },
-  { to: '/calendar', label: 'Seasonal Calendar', icon: CalendarDays, group: 'plan', description: 'Rotation across spring, summer and rabi' },
-  { to: '/decision', label: 'Decision Center', icon: Sparkles, group: 'plan', description: 'The 6:40 AM irrigation decision' },
-  { to: '/reports', label: 'Reports', icon: FileText, group: 'output', description: 'Field-ready PDF export' },
+  { to: '/', label: 'Earth Explorer', short: 'Earth', icon: Globe2, group: 'explore', description: 'Interactive 3D Earth and field drawing' },
+  { to: '/fields', label: 'My Fields', short: 'Fields', icon: Layers3, group: 'explore', description: 'Saved field boundaries' },
+  { to: '/intelligence', label: 'Field Intelligence', short: 'Overview', icon: Compass, group: 'intelligence', description: 'Overview, boundary and satellite preview' },
+  { to: '/vegetation', label: 'Vegetation & NDVI', short: 'Vegetation', icon: Leaf, group: 'intelligence', description: 'Sentinel-2 vegetation health' },
+  { to: '/soil', label: 'Soil Intelligence', short: 'Soil', icon: Mountain, group: 'intelligence', description: 'SoilGrids properties and texture' },
+  { to: '/climate', label: 'Climate Intelligence', short: 'Climate', icon: Droplets, group: 'intelligence', description: 'Rainfall, temperature, ET₀ and moisture' },
+  { to: '/crops', label: 'Crop Suitability', short: 'Crops', icon: Sprout, group: 'plan', description: 'Rules-first crop suitability comparison across every profile' },
+  { to: '/studio', label: 'Planning Studio', short: 'Studio', icon: MapPinned, group: 'plan', description: 'Spatial crop allocation, scenarios and export' },
+  { to: '/calendar', label: 'Seasonal Calendar', short: 'Calendar', icon: CalendarDays, group: 'plan', description: 'Rotation across spring, summer and rabi' },
+  { to: '/decision', label: 'Decision Center', short: 'Decision', icon: Sparkles, group: 'plan', description: 'The 6:40 AM irrigation decision' },
+  { to: '/reports', label: 'Reports', short: 'Reports', icon: FileText, group: 'output', description: 'Field-ready PDF export' },
 ];
 
 const GROUP_LABELS: Record<NavItem['group'], string> = {
@@ -55,123 +53,101 @@ const GROUP_LABELS: Record<NavItem['group'], string> = {
   output: 'Output',
 };
 
+function isActive(pathname: string, to: string): boolean {
+  return to === '/' ? pathname === '/' : pathname.startsWith(to);
+}
+
+function useActiveItem(pathname: string): NavItem {
+  const match = [...NAV_ITEMS]
+    .sort((a, b) => b.to.length - a.to.length)
+    .find((item) => isActive(pathname, item.to));
+  return match ?? NAV_ITEMS[0];
+}
+
+/**
+ * Premium app shell: a slim fixed top bar over a full-bleed workspace.
+ * The Earth Explorer and the drawing workspace get the entire viewport below
+ * the bar, which is what makes the globe feel like the centre of the product.
+ */
 export function AppShell(): JSX.Element {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const activeItem = useActiveItem(location.pathname);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const onScroll = (): void => setScrolled(window.scrollY > 4);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
-    <div className="flex h-full min-h-0 bg-background">
-      {/* ------------------------------------------------------------- sidebar */}
-      <aside
+    <div className="flex h-full min-h-0 flex-col bg-background">
+      {/* ------------------------------------------------------------- top bar */}
+      <header
         className={cn(
-          'shell-panel relative z-40 hidden shrink-0 flex-col border-r border-white/5 transition-[width] duration-300 lg:flex',
-          collapsed ? 'w-[68px]' : 'w-[264px]',
+          'relative z-40 flex h-14 shrink-0 items-center gap-3 border-b px-3 transition-colors sm:px-4',
+          'border-white/10 bg-forest-900 text-cream',
+          scrolled && 'shadow-panel',
         )}
       >
-        <div className={cn('flex items-center gap-2 px-4 py-4', collapsed && 'justify-center px-2')}>
-          <Logo
-            showWordmark={!collapsed}
-            tagline={collapsed ? undefined : 'Earth Intelligence'}
-            invert
-            className="min-w-0"
-          />
-        </div>
+        <Logo showWordmark invert markClassName="size-8" className="shrink-0" />
 
-        <Separator className="bg-white/[0.07]" />
+        <Separator className="hidden h-6 bg-white/12 md:block" />
 
-        <nav className="min-h-0 flex-1 overflow-y-auto px-2.5 py-4" aria-label="Primary">
-          {(Object.keys(GROUP_LABELS) as NavItem['group'][]).map((group) => {
-            const items = NAV_ITEMS.filter((item) => item.group === group);
-            if (!items.length) return null;
-            return (
-              <div key={group} className="mb-5">
-                {!collapsed ? (
-                  <p className="mb-1.5 px-2.5 text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-shell-muted/70">
-                    {GROUP_LABELS[group]}
-                  </p>
-                ) : (
-                  <Separator className="mb-3 bg-white/[0.06]" />
-                )}
-                <ul className="space-y-0.5">
-                  {items.map((item) => {
-                    const active = item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to);
-                    const link = (
-                      <NavLink
-                        key={item.to}
-                        to={item.to}
-                        onClick={() => setMobileOpen(false)}
-                        aria-current={active ? 'page' : undefined}
-                        className={cn(
-                          'group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors',
-                          collapsed && 'justify-center px-2',
-                          active
-                            ? 'bg-lime/12 text-lime shadow-inset'
-                            : 'text-shell-foreground/72 hover:bg-white/[0.06] hover:text-shell-foreground',
-                        )}
-                      >
-                        <item.icon className={cn('size-4 shrink-0', active ? 'text-lime' : 'text-shell-foreground/55')} />
-                        {!collapsed ? <span className="truncate font-medium">{item.label}</span> : null}
-                        {active && !collapsed ? (
-                          <span className="ml-auto size-1.5 rounded-full bg-lime" aria-hidden />
-                        ) : null}
-                      </NavLink>
-                    );
-                    return (
-                      <li key={item.to}>
-                        {collapsed ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>{link}</TooltipTrigger>
-                            <TooltipContent side="right">
-                              <p className="font-medium">{item.label}</p>
-                              <p className="mt-0.5 text-cream/60">{item.description}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          link
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            );
-          })}
+        {/* primary navigation */}
+        <nav aria-label="Primary" className="hidden min-w-0 flex-1 md:block">
+          <ul className="flex items-center gap-0.5">
+            {NAV_ITEMS.map((item) => {
+              const active = isActive(location.pathname, item.to);
+              return (
+                <li key={item.to}>
+                  <NavLink
+                    to={item.to}
+                    aria-current={active ? 'page' : undefined}
+                    className={cn(
+                      'group relative flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[0.8125rem] font-medium transition-colors',
+                      active ? 'text-cream' : 'text-cream/60 hover:text-cream',
+                    )}
+                  >
+                    <item.icon className="size-[0.9375rem] shrink-0" aria-hidden />
+                    <span className="hidden lg:inline">{item.short}</span>
+                    {active ? (
+                      <span className="absolute inset-x-2 -bottom-[0.4rem] h-0.5 rounded-full bg-lime" aria-hidden />
+                    ) : null}
+                  </NavLink>
+                </li>
+              );
+            })}
+          </ul>
         </nav>
 
-        <div className={cn('border-t border-white/[0.07] p-3', collapsed && 'px-2')}>
-          {!collapsed ? (
-            <div className="mb-2.5 rounded-lg border border-white/[0.07] bg-white/[0.03] p-2.5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[0.625rem] font-semibold uppercase tracking-[0.14em] text-shell-muted/70">
-                  Map tiles
-                </span>
-                <Badge variant={HAS_MAPBOX_TOKEN ? 'lime' : 'muted'}>
-                  {HAS_MAPBOX_TOKEN ? 'Mapbox' : 'Keyless'}
-                </Badge>
-              </div>
-              <p className="mt-1.5 text-[0.6875rem] leading-relaxed text-shell-muted">
-                {HAS_MAPBOX_TOKEN
-                  ? 'Mapbox token detected — commercial satellite imagery is available.'
-                  : 'Running the keyless Sentinel-2 cloudless stack. Add VITE_MAPBOX_TOKEN for Mapbox imagery.'}
-              </p>
-            </div>
-          ) : null}
+        {/* mobile: current page label */}
+        <div className="min-w-0 flex-1 md:hidden">
+          <p className="truncate font-display text-sm font-semibold text-cream">
+            {activeItem.label}
+          </p>
+        </div>
+
+        <div className="ml-auto flex items-center gap-2">
+          <div className="hidden sm:block">
+            <FieldContextBar />
+          </div>
           <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              'w-full text-shell-muted hover:bg-white/[0.07] hover:text-shell-foreground',
-              collapsed && 'px-0',
-            )}
-            onClick={() => setCollapsed((value) => !value)}
-            aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+            variant="shell"
+            size="icon-sm"
+            className="border border-white/10 md:hidden"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open navigation"
           >
-            <ChevronLeft className={cn('size-4 transition-transform', collapsed && 'rotate-180')} />
-            {!collapsed ? <span>Collapse</span> : null}
+            <Menu className="size-4" />
           </Button>
         </div>
-      </aside>
+      </header>
 
       {/* -------------------------------------------------------- mobile drawer */}
       <AnimatePresence>
@@ -181,15 +157,15 @@ export function AppShell(): JSX.Element {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-forest-950/70 backdrop-blur-sm lg:hidden"
+              className="fixed inset-0 z-40 bg-forest-950/70 backdrop-blur-sm md:hidden"
               onClick={() => setMobileOpen(false)}
             />
             <motion.aside
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="shell-panel fixed inset-y-0 left-0 z-50 flex w-[272px] flex-col lg:hidden"
+              transition={{ type: 'spring', damping: 32, stiffness: 340 }}
+              className="shell-panel fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col md:hidden"
             >
               <div className="flex items-center justify-between px-4 py-4">
                 <Logo tagline="Earth Intelligence" invert />
@@ -207,27 +183,27 @@ export function AppShell(): JSX.Element {
               <nav className="flex-1 overflow-y-auto px-2.5 py-4" aria-label="Primary mobile">
                 {(Object.keys(GROUP_LABELS) as NavItem['group'][]).map((group) => (
                   <div key={group} className="mb-5">
-                    <p className="mb-1.5 px-2.5 text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-shell-muted/70">
+                    <p className="mb-1.5 px-2.5 text-3xs font-semibold uppercase tracking-[0.18em] text-shell-muted/70">
                       {GROUP_LABELS[group]}
                     </p>
                     <ul className="space-y-0.5">
                       {NAV_ITEMS.filter((item) => item.group === group).map((item) => {
-                        const active = item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to);
+                        const active = isActive(location.pathname, item.to);
                         return (
                           <li key={item.to}>
                             <NavLink
                               to={item.to}
-                              onClick={() => setMobileOpen(false)}
                               aria-current={active ? 'page' : undefined}
                               className={cn(
-                                'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors',
+                                'flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-sm transition-colors',
                                 active
-                                  ? 'bg-lime/12 text-lime'
+                                  ? 'bg-lime/12 text-lime-300 shadow-inset'
                                   : 'text-shell-foreground/72 hover:bg-white/[0.06] hover:text-shell-foreground',
                               )}
                             >
                               <item.icon className="size-4 shrink-0" />
                               <span className="truncate font-medium">{item.label}</span>
+                              {active ? <span className="ml-auto size-1.5 rounded-full bg-lime" aria-hidden /> : null}
                             </NavLink>
                           </li>
                         );
@@ -236,55 +212,47 @@ export function AppShell(): JSX.Element {
                   </div>
                 ))}
               </nav>
+              <div className="border-t border-white/[0.07] p-3">
+                <div className="flex items-center gap-2 rounded-lg border border-white/[0.07] bg-white/[0.03] px-2.5 py-2">
+                  <LogoMark className="size-6 rounded-md" title="" />
+                  <p className="text-2xs leading-relaxed text-shell-muted">
+                    Keyless open-source mapping. No API keys required.
+                  </p>
+                </div>
+              </div>
             </motion.aside>
           </>
         ) : null}
       </AnimatePresence>
 
-      {/* ------------------------------------------------------------ main area */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border/70 bg-background/85 px-3 backdrop-blur sm:px-4">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="lg:hidden"
-            onClick={() => setMobileOpen(true)}
-            aria-label="Open navigation"
-          >
-            <Menu className="size-4" />
-          </Button>
-          <div className="flex min-w-0 items-center gap-2">
-            <BarChart3 className="hidden size-4 text-lime sm:block" aria-hidden />
-            <PageTitle pathname={location.pathname} />
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <FieldContextBar />
-          </div>
-        </header>
-
-        <main className="min-h-0 flex-1 overflow-hidden">
+      {/* ------------------------------------------------------------ workspace */}
+      <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <SectionNav />
+        <div className="min-h-0 flex-1 overflow-hidden">
           <Outlet />
-        </main>
-
-        <footer className="hidden shrink-0 items-center gap-2 border-t border-border/60 px-4 py-1.5 text-[0.625rem] text-muted-foreground/80 xl:flex">
-          <span className="truncate">{SATELLITE_ATTRIBUTION}</span>
-          <span className="ml-auto shrink-0 font-mono">AgriSense · Earth Intelligence for Agriculture</span>
-        </footer>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }
 
-function PageTitle({ pathname }: { pathname: string }): JSX.Element {
-  const match =
-    pathname === '/'
-      ? NAV_ITEMS[0]
-      : [...NAV_ITEMS].sort((a, b) => b.to.length - a.to.length).find((item) => item.to !== '/' && pathname.startsWith(item.to));
-  const item = match ?? NAV_ITEMS[0];
+/** Compact page heading used by the non-map intelligence pages. */
+export function PageHeading({
+  title,
+  description,
+  actions,
+}: {
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+}): JSX.Element {
   return (
-    <div className="min-w-0">
-      <h1 className="truncate font-display text-sm font-semibold leading-tight">{item.label}</h1>
-      <p className="hidden truncate text-[0.6875rem] text-muted-foreground sm:block">{item.description}</p>
+    <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="min-w-0">
+        <h1 className="type-title">{title}</h1>
+        {description ? <p className="mt-1 max-w-2xl type-meta">{description}</p> : null}
+      </div>
+      {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
     </div>
   );
 }

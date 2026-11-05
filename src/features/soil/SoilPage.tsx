@@ -159,7 +159,7 @@ export default function SoilPage(): JSX.Element {
                     <BarSeriesChart
                       data={textureData}
                       xKey="component"
-                      series={[{ key: 'share', name: 'Fraction', color: '#A8E600' }]}
+                      series={[{ key: 'share', name: 'Fraction', color: '#9edb02' }]}
                       height={170}
                       formatValue={(value) => `${value.toFixed(1)}%`}
                     />

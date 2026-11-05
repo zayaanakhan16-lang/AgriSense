@@ -17,9 +17,10 @@ ReactDOM.createRoot(rootElement).render(
         theme="dark"
         toastOptions={{
           style: {
-            background: 'rgba(0,31,25,0.96)',
-            border: '1px solid rgba(168,230,0,0.22)',
-            color: '#F7F7EF',
+            background: 'rgba(1,38,27,0.96)',
+            border: '1px solid rgba(158,219,2,0.24)',
+            color: '#f6f5ea',
+            fontFamily: 'Inter, system-ui, sans-serif',
           },
         }}
       />

@@ -3,9 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertTriangle,
   ArrowLeft,
+  Check,
   CheckCircle2,
   Globe2,
   Loader2,
+  LocateFixed,
   Pencil,
   Ruler,
   Sparkles,
@@ -17,7 +19,6 @@ import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { Field } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { InlineNotice } from '@/components/common/StateBlocks';
 import { cn } from '@/lib/utils';
 import { formatAcres, formatArea, formatCoord } from '@/lib/format';
@@ -29,20 +30,34 @@ import { EarthMap } from '@/components/map/EarthMap';
 
 export interface DrawingWorkspaceProps {
   onFieldCreated: (field: Field) => void;
+  onOpenSearch?: () => void;
 }
 
-export function DrawingWorkspace({ onFieldCreated }: DrawingWorkspaceProps): JSX.Element {
+export function DrawingWorkspace({ onFieldCreated, onOpenSearch }: DrawingWorkspaceProps): JSX.Element {
   const [mapInstance, setMapInstance] = useState<MapLibreMap | null>(null);
   const [fieldName, setFieldName] = useState('');
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
 
   const cursor = useMapStore((s) => s.cursor);
   const flyTo = useMapStore((s) => s.flyTo);
-  const { mode, points, start, undo, cancel, close, reset } = useDrawStore();
+  const {
+    mode,
+    points,
+    start,
+    undo,
+    cancel,
+    close,
+    reset,
+    startEditing,
+    finishEditing,
+    removeVertex,
+  } = useDrawStore();
   const createField = useFieldsStore((s) => s.createField);
 
   const drawing = mode === 'drawing';
+  const editing = mode === 'editing';
   const closed = mode === 'closed';
+  const idle = !drawing && !closed && !editing;
 
   const handleStart = useCallback(() => {
     reset();
@@ -68,7 +83,7 @@ export function DrawingWorkspace({ onFieldCreated }: DrawingWorkspaceProps): JSX
           [Math.min(...lngs), Math.min(...lats)],
           [Math.max(...lngs), Math.max(...lats)],
         ],
-        { padding: 90, duration: 1100, maxZoom: 17 },
+        { padding: 110, duration: 1100, maxZoom: 17 },
       );
     }
   }, [points, close, mapInstance]);
@@ -93,54 +108,77 @@ export function DrawingWorkspace({ onFieldCreated }: DrawingWorkspaceProps): JSX
     setFieldName('');
   }, [cancel]);
 
+  const handleLocate = useCallback(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (position) =>
+        flyTo({ coord: { lng: position.coords.longitude, lat: position.coords.latitude }, zoom: 15 }),
+      () => undefined,
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
+    );
+  }, [flyTo]);
+
+  const ring = points.length >= 3 ? closeRing(points) : null;
+  const area = ring ? polygonAreaM2(ring) : 0;
+
   return (
     <div className="relative size-full">
       <EarthMap
         drawing={drawing}
+        editing={editing}
+        globeMode
         onMapReady={setMapInstance}
-        fieldCoords={closed ? points : null}
+        fieldCoords={closed || editing ? points : null}
+        onSearchClick={onOpenSearch}
         className={cn(drawing && 'ring-2 ring-inset ring-lime/25')}
       />
 
-      {/* ------------------------------------------------------------------ HUD */}
+      {/* ------------------------------------------------------------- idle HUD */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-center p-3 sm:p-5">
         <AnimatePresence mode="wait">
-          {!drawing && !closed ? (
+          {idle ? (
             <motion.div
               key="idle"
-              initial={{ opacity: 0, y: -12 }}
+              initial={{ opacity: 0, y: -14 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.25 }}
-              className="pointer-events-auto w-full max-w-md rounded-xl border border-white/10 bg-forest-950/85 p-4 shadow-float backdrop-blur"
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.26 }}
+              className="pointer-events-auto mt-12 w-full max-w-[440px] sm:mt-14"
             >
-              <div className="flex items-start gap-3">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-lime/15 text-lime">
-                  <Pencil className="size-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h2 className="font-display text-sm font-semibold text-cream">Draw a field on Earth</h2>
-                  <p className="mt-1 text-2xs leading-relaxed text-cream/70">
-                    Navigate to your farm, then trace its boundary. Triangles, rectangles and irregular shapes all work.
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button variant="lime" size="sm" onClick={handleStart}>
-                      <Pencil className="size-3.5" />
-                      Draw Field
-                    </Button>
-                    <Button
-                      variant="shell"
-                      size="sm"
-                      className="border border-white/10"
-                      onClick={() => {
-                        const target = useMapStore.getState().view;
-                        flyTo({ coord: target.center, zoom: 15 });
-                      }}
-                    >
-                      <Globe2 className="size-3.5" />
-                      Zoom to my area
-                    </Button>
+              <div className="chrome overflow-hidden">
+                <div className="flex items-start gap-3.5 p-4">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-lime/15 text-lime">
+                    <Pencil className="size-4.5" />
                   </div>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="type-section text-cream">Draw a field on Earth</h2>
+                    <p className="mt-1 text-2xs leading-relaxed text-cream/60">
+                      Rotate the globe, zoom to your farm, then trace its boundary. Any shape works — the area is computed
+                      geodesically the moment you close the ring.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.08] bg-black/20 px-4 py-3">
+                  <Button variant="lime" size="sm" onClick={handleStart}>
+                    <Pencil className="size-3.5" />
+                    Draw field
+                  </Button>
+                  <Button
+                    variant="shell"
+                    size="sm"
+                    className="border border-white/10"
+                    onClick={() => {
+                      const target = useMapStore.getState().view;
+                      flyTo({ coord: target.center, zoom: 15 });
+                    }}
+                  >
+                    <Globe2 className="size-3.5" />
+                    Zoom to my area
+                  </Button>
+                  <Button variant="ghost" size="sm" className="text-cream/60 hover:bg-white/10 hover:text-cream" onClick={handleLocate}>
+                    <LocateFixed className="size-3.5" />
+                    My location
+                  </Button>
                 </div>
               </div>
             </motion.div>
@@ -148,18 +186,18 @@ export function DrawingWorkspace({ onFieldCreated }: DrawingWorkspaceProps): JSX
         </AnimatePresence>
       </div>
 
-      {/* ------------------------------------------------------- drawing controls */}
+      {/* -------------------------------------------------------- drawing controls */}
       <AnimatePresence>
         {drawing ? (
           <motion.div
             key="drawing"
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 26 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 24 }}
+            exit={{ opacity: 0, y: 26 }}
             transition={{ duration: 0.24 }}
             className="absolute inset-x-0 bottom-0 z-30 p-3 sm:p-5"
           >
-            <div className="mx-auto flex max-w-3xl flex-col gap-3 rounded-xl border border-lime/25 bg-forest-950/90 p-4 shadow-float backdrop-blur">
+            <div className="chrome mx-auto flex max-w-3xl flex-col gap-3 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
                   <span className="relative flex size-2.5">
@@ -168,7 +206,7 @@ export function DrawingWorkspace({ onFieldCreated }: DrawingWorkspaceProps): JSX
                   </span>
                   <div>
                     <p className="text-xs font-semibold text-cream">Drawing mode active</p>
-                    <p className="text-2xs text-cream/60">
+                    <p className="text-2xs text-cream/55">
                       Click to place vertices. Panning is locked so the camera stays over your field.
                     </p>
                   </div>
@@ -178,7 +216,7 @@ export function DrawingWorkspace({ onFieldCreated }: DrawingWorkspaceProps): JSX
                 </Badge>
               </div>
 
-              <Separator className="bg-white/10" />
+              <div className="hairline" />
 
               <div className="flex flex-wrap items-center gap-2">
                 <Button variant="lime" size="sm" onClick={handleClose} disabled={points.length < 3}>
@@ -193,15 +231,15 @@ export function DrawingWorkspace({ onFieldCreated }: DrawingWorkspaceProps): JSX
                   disabled={points.length === 0}
                 >
                   <Undo2 className="size-3.5" />
-                  Undo point
+                  Undo
                 </Button>
                 <Button variant="shell" size="sm" className="border border-white/10" onClick={handleCancel}>
                   <XCircle className="size-3.5" />
                   Cancel
                 </Button>
                 {points.length > 0 && points.length < 3 ? (
-                  <span className="text-2xs text-cream/60">
-                    {3 - points.length} more {3 - points.length === 1 ? 'point' : 'points'} needed to form a polygon.
+                  <span className="text-2xs text-cream/55">
+                    {3 - points.length} more {3 - points.length === 1 ? 'point' : 'points'} needed.
                   </span>
                 ) : null}
               </div>
@@ -219,38 +257,97 @@ export function DrawingWorkspace({ onFieldCreated }: DrawingWorkspaceProps): JSX
         ) : null}
       </AnimatePresence>
 
-      {/* -------------------------------------------------------- confirm & name */}
+      {/* ----------------------------------------------------------- edit vertices */}
+      <AnimatePresence>
+        {editing ? (
+          <motion.div
+            key="editing"
+            initial={{ opacity: 0, y: 26 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 26 }}
+            transition={{ duration: 0.24 }}
+            className="absolute inset-x-0 bottom-0 z-30 p-3 sm:p-5"
+          >
+            <div className="chrome mx-auto flex max-w-3xl flex-col gap-3 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold text-cream">Editing boundary</p>
+                  <p className="text-2xs text-cream/55">
+                    Drag a white handle to move a vertex. Click a handle to insert a new vertex after it.
+                  </p>
+                </div>
+                <Badge variant="lime" className="font-mono">
+                  {points.length} vertices
+                </Badge>
+              </div>
+              <div className="hairline" />
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="lime" size="sm" onClick={finishEditing}>
+                  <Check className="size-3.5" />
+                  Done editing
+                </Button>
+                <Button
+                  variant="shell"
+                  size="sm"
+                  className="border border-white/10"
+                  onClick={() => removeVertex(points.length - 1)}
+                  disabled={points.length <= 3}
+                >
+                  <Undo2 className="size-3.5" />
+                  Remove last vertex
+                </Button>
+                <Button variant="ghost" size="sm" className="text-cream/60 hover:bg-white/10 hover:text-cream" onClick={handleCancel}>
+                  <XCircle className="size-3.5" />
+                  Discard
+                </Button>
+              </div>
+              <div className="flex items-baseline gap-4 font-mono text-xs text-cream">
+                <span>
+                  <span className="text-cream/50">area </span>
+                  {formatArea(area)}
+                </span>
+                <span>
+                  <span className="text-cream/50">acres </span>
+                  {formatAcres(area)}
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      {/* --------------------------------------------------------- confirm & name */}
       <AnimatePresence>
         {closed ? (
           <motion.div
             key="confirm"
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 26 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 24 }}
+            exit={{ opacity: 0, y: 26 }}
             transition={{ duration: 0.24 }}
             className="absolute inset-x-0 bottom-0 z-30 p-3 sm:p-5"
           >
-            <div className="mx-auto max-w-2xl rounded-xl border border-lime/25 bg-forest-950/92 p-5 shadow-float backdrop-blur">
+            <div className="chrome mx-auto max-w-2xl p-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="size-4 text-lime" />
-                    <h2 className="font-display text-sm font-semibold text-cream">Boundary closed</h2>
+                    <h2 className="type-section text-cream">Boundary closed</h2>
                   </div>
-                  <p className="mt-1 text-2xs text-cream/65">
+                  <p className="mt-1 text-2xs leading-relaxed text-cream/55">
                     Area is computed geodesically on the WGS84 ellipsoid, not on the projected screen.
                   </p>
                 </div>
                 <div className="flex gap-6">
-                  <Metric label="Area" value={formatArea(polygonAreaM2(closeRing(points)))} sub={formatAcres(polygonAreaM2(closeRing(points)))} />
+                  <Metric label="Area" value={formatArea(area)} sub={formatAcres(area)} />
                   <Metric label="Vertices" value={String(points.length)} sub="ring closed" />
                 </div>
               </div>
 
-              <Separator className="my-4 bg-white/10" />
+              <div className="hairline my-4" />
 
               <label className="block">
-                <span className="label-caps text-cream/60">Field name</span>
+                <span className="label-caps text-cream/55">Field name</span>
                 <input
                   value={fieldName}
                   onChange={(event) => {
@@ -258,7 +355,7 @@ export function DrawingWorkspace({ onFieldCreated }: DrawingWorkspaceProps): JSX
                     setValidationMessage(null);
                   }}
                   placeholder="e.g. North pivot — wheat block"
-                  className="mt-2 w-full rounded-lg border border-white/15 bg-white/[0.06] px-3 py-2 text-sm text-cream placeholder:text-cream/40 focus:border-lime focus:outline-none focus:ring-2 focus:ring-lime/40"
+                  className="mt-2 w-full rounded-lg border border-white/15 bg-white/[0.06] px-3 py-2 text-sm text-cream placeholder:text-cream/35 focus:border-lime focus:outline-none focus:ring-2 focus:ring-lime/40"
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') handleSave();
                   }}
@@ -280,17 +377,28 @@ export function DrawingWorkspace({ onFieldCreated }: DrawingWorkspaceProps): JSX
                   <Sparkles className="size-4" />
                   Analyse this field
                 </Button>
+                <Button variant="shell" className="border border-white/10" onClick={startEditing}>
+                  <Pencil className="size-3.5" />
+                  Edit vertices
+                </Button>
                 <Button variant="shell" className="border border-white/10" onClick={handleCancel}>
                   <ArrowLeft className="size-3.5" />
-                  Back to editing
+                  Redraw
                 </Button>
-                <Button variant="ghost" className="text-cream/70 hover:bg-white/10 hover:text-cream" onClick={handleCancel}>
+                <Button
+                  variant="ghost"
+                  className="text-cream/60 hover:bg-white/10 hover:text-cream"
+                  onClick={() => {
+                    handleCancel();
+                    reset();
+                  }}
+                >
                   <Trash2 className="size-3.5" />
                   Discard
                 </Button>
               </div>
 
-              <p className="mt-3 flex items-center gap-1.5 text-2xs text-cream/50">
+              <p className="mt-3 flex items-center gap-1.5 text-2xs text-cream/45">
                 <Ruler className="size-3" aria-hidden />
                 {cursor ? `Cursor at ${formatCoord(cursor, 4)}` : 'Move the cursor over the map to read coordinates.'}
               </p>
@@ -299,18 +407,27 @@ export function DrawingWorkspace({ onFieldCreated }: DrawingWorkspaceProps): JSX
         ) : null}
       </AnimatePresence>
 
+      {/* ------------------------------------------------------- drawing ambience */}
       {drawing ? (
-        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-lime/[0.07] to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-lime/[0.07] to-transparent" />
-        </div>
+        <>
+          <div className="pointer-events-none absolute inset-0 z-10">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-lime/[0.08] to-transparent" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-lime/[0.08] to-transparent" />
+          </div>
+          <div className="pointer-events-none absolute right-4 top-1/2 z-20 -translate-y-1/2">
+            <div className="chrome flex items-center gap-2 px-3 py-1.5 text-2xs text-lime">
+              <Loader2 className="size-3 animate-pulse" />
+              Pencil active
+            </div>
+          </div>
+        </>
       ) : null}
 
-      {drawing ? (
-        <div className="pointer-events-none absolute right-4 top-1/2 z-20 -translate-y-1/2">
-          <div className="flex items-center gap-2 rounded-full border border-lime/30 bg-forest-950/80 px-3 py-1.5 text-2xs text-lime backdrop-blur">
-            <Loader2 className="size-3 animate-pulse" />
-            Pencil active
+      {closed ? (
+        <div className="pointer-events-none absolute left-1/2 top-3 z-20 hidden -translate-x-1/2 sm:block">
+          <div className="chrome flex items-center gap-2 px-3 py-1.5 text-2xs text-cream/70">
+            <Check className="size-3 text-lime" />
+            Review the boundary, then name and analyse it
           </div>
         </div>
       ) : null}
@@ -321,10 +438,9 @@ export function DrawingWorkspace({ onFieldCreated }: DrawingWorkspaceProps): JSX
 function Metric({ label, value, sub }: { label: string; value: string; sub: string }): JSX.Element {
   return (
     <div>
-      <div className="label-caps text-cream/55">{label}</div>
-      <div className="mt-0.5 font-mono text-lg font-semibold text-cream">{value}</div>
-      <div className="text-2xs text-cream/50">{sub}</div>
+      <div className="label-caps text-cream/50">{label}</div>
+      <div className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-cream">{value}</div>
+      <div className="text-2xs text-cream/45">{sub}</div>
     </div>
   );
 }
-

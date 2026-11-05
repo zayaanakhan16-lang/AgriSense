@@ -46,8 +46,8 @@ export function ErrorState({
       <div className="flex items-start gap-3">
         <AlertTriangle className="mt-0.5 size-4 shrink-0 text-red-400" />
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold text-red-200">{title}</h3>
-          <p className="mt-1 text-xs leading-relaxed text-red-200/80">{message}</p>
+          <h3 className="text-sm font-semibold text-red-300">{title}</h3>
+          <p className="mt-1 text-xs leading-relaxed text-red-300/80">{message}</p>
           {onRetry ? (
             <Button variant="outline" size="sm" className="mt-3" onClick={onRetry}>
               <RefreshCw className="size-3.5" />
@@ -88,12 +88,26 @@ export function UnavailableState({
   );
 }
 
+/**
+ * Provenance vocabulary used across the product. Keep these five words stable —
+ * every measurement in AgriSense is labelled with exactly one of them so a reader
+ * can tell an observation from a calculation, an estimate from a proposal.
+ */
 const ORIGIN_LABELS: Record<DataOrigin, { label: string; variant: 'success' | 'info' | 'warning' | 'muted' }> = {
-  live: { label: 'Live data', variant: 'success' },
-  derived: { label: 'Derived', variant: 'info' },
-  demo: { label: 'Demonstration data', variant: 'warning' },
+  live: { label: 'Observed', variant: 'success' },
+  derived: { label: 'Calculated', variant: 'info' },
+  demo: { label: 'Illustrative', variant: 'warning' },
   unavailable: { label: 'Unavailable', variant: 'muted' },
 };
+
+/** Provenance tag for user-authored planning content, which is never an observation. */
+export function ProposedTag({ className }: { className?: string }): JSX.Element {
+  return (
+    <Badge variant="info" className={className}>
+      Proposed
+    </Badge>
+  );
+}
 
 export function DataOriginBadge({ origin, className }: { origin: DataOrigin; className?: string }): JSX.Element {
   const config = ORIGIN_LABELS[origin];
@@ -132,8 +146,8 @@ export function InlineNotice({
 }): JSX.Element {
   const tones = {
     info: 'border-sky-500/25 bg-sky-500/[0.07] text-sky-100',
-    warning: 'border-amber-500/30 bg-amber-500/[0.07] text-amber-100',
-    danger: 'border-red-500/30 bg-red-500/[0.07] text-red-100',
+    warning: 'border-amber-600/30 bg-amber-500/[0.07] text-amber-900',
+    danger: 'border-red-600/30 bg-red-500/[0.07] text-red-900',
   } as const;
   return (
     <div className={cn('rounded-lg border px-3 py-2.5 text-xs leading-relaxed', tones[tone], className)}>

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import {
   ArrowRight,
   Ban,
+  ArrowUpDown,
+  Search,
   Bot,
   CheckCircle2,
   Filter,
@@ -18,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { NoFieldSelected } from '@/components/common/FieldContextBar';
 import { DemoNotice, InlineNotice, SourceNote, UnavailableState } from '@/components/common/StateBlocks';
@@ -58,12 +61,34 @@ export default function CropPlanningPage(): JSX.Element {
   const { evaluation, planning } = intelligence;
   const [verdictFilter, setVerdictFilter] = useState<'all' | SuitabilityVerdict>('all');
   const [selectedCropId, setSelectedCropId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [sortKey, setSortKey] = useState<'score' | 'name' | 'water'>('score');
 
   const filtered = useMemo(() => {
     if (!evaluation) return [];
-    if (verdictFilter === 'all') return evaluation.evaluations;
-    return evaluation.evaluations.filter((entry) => entry.verdict === verdictFilter);
-  }, [evaluation, verdictFilter]);
+    const term = query.trim().toLowerCase();
+    const base = verdictFilter === 'all'
+      ? evaluation.evaluations
+      : evaluation.evaluations.filter((entry) => entry.verdict === verdictFilter);
+    const searched = term
+      ? base.filter(
+          (entry) =>
+            entry.crop.name.toLowerCase().includes(term) ||
+            (entry.crop.scientificName?.toLowerCase().includes(term) ?? false),
+        )
+      : base;
+    const sorted = [...searched];
+    sorted.sort((a, b) => {
+      if (sortKey === 'name') return a.crop.name.localeCompare(b.crop.name);
+      if (sortKey === 'water') {
+        const wa = (a.crop.waterRequirementMm.min + a.crop.waterRequirementMm.max) / 2;
+        const wb = (b.crop.waterRequirementMm.min + b.crop.waterRequirementMm.max) / 2;
+        return wa - wb;
+      }
+      return b.score - a.score;
+    });
+    return sorted;
+  }, [evaluation, verdictFilter, query, sortKey]);
 
   const selected = useMemo(() => {
     if (!evaluation) return null;
@@ -106,8 +131,8 @@ export default function CropPlanningPage(): JSX.Element {
             Re-evaluate
           </Button>
           <Button asChild variant="lime" size="sm">
-            <Link to="/calendar">
-              Seasonal calendar
+            <Link to="/studio">
+              Create crop plan
               <ArrowRight className="size-3.5" />
             </Link>
           </Button>
@@ -236,17 +261,40 @@ export default function CropPlanningPage(): JSX.Element {
                 description="Deterministic scores. Select a crop to see its factor breakdown."
                 bodyClassName="p-0"
                 actions={
-                  <Select value={verdictFilter} onValueChange={(value) => setVerdictFilter(value as typeof verdictFilter)}>
-                    <SelectTrigger className="h-8 w-[170px] text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All {evaluation.datasetSize} profiles</SelectItem>
-                      <SelectItem value="recommended">Recommended only</SelectItem>
-                      <SelectItem value="conditional">Conditional only</SelectItem>
-                      <SelectItem value="rejected">Rejected only</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={query}
+                        onChange={(event) => setQuery(event.target.value)}
+                        placeholder="Search crop or species"
+                        className="h-8 w-[190px] pl-7 text-xs"
+                        aria-label="Search crops"
+                      />
+                    </div>
+                    <Select value={sortKey} onValueChange={(value) => setSortKey(value as typeof sortKey)}>
+                      <SelectTrigger className="h-8 w-[130px] text-xs" aria-label="Sort crops">
+                        <ArrowUpDown className="mr-1 size-3.5" />
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="score">Score</SelectItem>
+                        <SelectItem value="name">Name</SelectItem>
+                        <SelectItem value="water">Water need</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={verdictFilter} onValueChange={(value) => setVerdictFilter(value as typeof verdictFilter)}>
+                      <SelectTrigger className="h-8 w-[150px] text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All {evaluation.datasetSize}</SelectItem>
+                        <SelectItem value="recommended">Recommended</SelectItem>
+                        <SelectItem value="conditional">Conditional</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 }
               >
                 <div className="max-h-[440px] overflow-y-auto">

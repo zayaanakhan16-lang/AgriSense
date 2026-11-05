@@ -57,6 +57,22 @@ export const DATA_SOURCES = {
     license: 'CC BY 4.0',
     note: 'Modelled PM2.5 and PM10 near-surface concentrations.',
   },
+  openFreeMap: {
+    id: 'openfreemap',
+    label: 'OpenFreeMap vector basemap',
+    provider: 'OpenFreeMap (OpenStreetMap data)',
+    url: 'https://openfreemap.org',
+    license: 'ODbL 1.0 (data © OpenStreetMap contributors)',
+    note: 'Keyless vector tiles and self-hosted styles. A map, not satellite imagery.',
+  },
+  nasaGibs: {
+    id: 'nasa-gibs',
+    label: 'NASA GIBS imagery',
+    provider: 'NASA EOSDIS Global Imagery Browse Services',
+    url: 'https://www.earthdata.nasa.gov/data/tools/gibs',
+    license: 'NASA open data (free, attribution requested)',
+    note: 'Near-real-time MODIS Terra true colour, ~250 m — coarse global coverage only.',
+  },
   openStreetMap: {
     id: 'openstreetmap-nominatim',
     label: 'OpenStreetMap place search',

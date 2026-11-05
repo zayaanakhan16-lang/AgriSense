@@ -33,7 +33,7 @@ export default function FieldIntelligencePage(): JSX.Element {
   const fieldCoords = useMemo(() => field?.boundary.coords ?? null, [field]);
   const markers = useMemo(() => {
     if (!field) return [];
-    return [{ coord: field.boundary.centroid, color: '#A8E600', radius: 6 }];
+    return [{ coord: field.boundary.centroid, color: '#9edb02', radius: 6 }];
   }, [field]);
 
   if (!field) {

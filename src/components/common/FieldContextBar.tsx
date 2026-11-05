@@ -52,7 +52,10 @@ export function FieldContextBar(): JSX.Element {
         value={selectedFieldId ?? ''}
         onValueChange={(value) => selectField(value)}
       >
-        <SelectTrigger className="h-8 w-[190px] text-xs sm:w-[230px]" aria-label="Select active field">
+        <SelectTrigger
+          className="h-8 w-[190px] border-white/15 bg-white/[0.07] text-xs text-cream hover:bg-white/[0.11] sm:w-[230px]"
+          aria-label="Select active field"
+        >
           <SelectValue placeholder="Select a field" />
         </SelectTrigger>
         <SelectContent>
@@ -75,7 +78,12 @@ export function FieldContextBar(): JSX.Element {
         </Badge>
       ) : null}
 
-      <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
+      <Button
+        asChild
+        variant="shell"
+        size="sm"
+        className="hidden border border-white/15 md:inline-flex"
+      >
         <Link to="/">
           <ChevronDown className="size-3.5 rotate-90" />
           New field
