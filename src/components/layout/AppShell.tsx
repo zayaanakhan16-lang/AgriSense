@@ -2,11 +2,14 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useEffect, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+  BarChart3,
   CalendarDays,
+  CalendarRange,
   Compass,
   Droplets,
   FileText,
   Globe2,
+  Grid3x3,
   Layers3,
   Leaf,
   MapPinned,
@@ -33,13 +36,16 @@ interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: 'Earth Explorer', short: 'Earth', icon: Globe2, group: 'explore', description: 'Interactive 3D Earth and field drawing' },
-  { to: '/fields', label: 'My Fields', short: 'Fields', icon: Layers3, group: 'explore', description: 'Saved field boundaries' },
+  { to: '/', label: 'Earth Explorer', short: 'Earth', icon: Globe2, group: 'explore', description: 'Interactive 3D Earth and region drawing' },
+  { to: '/analytics', label: 'Region Analytics', short: 'Analytics', icon: BarChart3, group: 'explore', description: 'Weather, air, water and land-use analytics for the selected region' },
+  { to: '/crop-profiles', label: 'Crop Profiles', short: 'Profiles', icon: Grid3x3, group: 'explore', description: 'Crop profile points on the satellite map' },
+  { to: '/fields', label: 'My Fields', short: 'Fields', icon: Layers3, group: 'explore', description: 'Saved region boundaries' },
   { to: '/intelligence', label: 'Field Intelligence', short: 'Overview', icon: Compass, group: 'intelligence', description: 'Overview, boundary and satellite preview' },
   { to: '/vegetation', label: 'Vegetation & NDVI', short: 'Vegetation', icon: Leaf, group: 'intelligence', description: 'Sentinel-2 vegetation health' },
   { to: '/soil', label: 'Soil Intelligence', short: 'Soil', icon: Mountain, group: 'intelligence', description: 'SoilGrids properties and texture' },
   { to: '/climate', label: 'Climate Intelligence', short: 'Climate', icon: Droplets, group: 'intelligence', description: 'Rainfall, temperature, ET₀ and moisture' },
   { to: '/crops', label: 'Crop Suitability', short: 'Crops', icon: Sprout, group: 'plan', description: 'Rules-first crop suitability comparison across every profile' },
+  { to: '/crop-plan', label: 'Crop Planning', short: 'Planning', icon: CalendarRange, group: 'plan', description: 'Intercropping pairs, rotation and the crop calendar' },
   { to: '/studio', label: 'Planning Studio', short: 'Studio', icon: MapPinned, group: 'plan', description: 'Spatial crop allocation, scenarios and export' },
   { to: '/calendar', label: 'Seasonal Calendar', short: 'Calendar', icon: CalendarDays, group: 'plan', description: 'Rotation across spring, summer and rabi' },
   { to: '/decision', label: 'Decision Center', short: 'Decision', icon: Sparkles, group: 'plan', description: 'The 6:40 AM irrigation decision' },

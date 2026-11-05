@@ -43,6 +43,8 @@ export interface FieldBoundary {
   vertexCount: number;
 }
 
+export type RegionType = 'rural' | 'urban';
+
 export interface Field {
   id: string;
   name: string;
@@ -55,6 +57,14 @@ export interface Field {
   soilTexture?: string;
   notes?: string;
   isSample?: boolean;
+  /** Primary crop / land-use label shown on the region card and analytics header. */
+  crop?: string;
+  /** Rural land or urban settlement. Drives the analytics framing. */
+  regionType?: RegionType;
+  /** Planning group the region belongs to. */
+  group?: string;
+  /** Hex colour used for the region fill/icon. */
+  color?: string;
 }
 
 /* ------------------------------ Analysis --------------------------------- */

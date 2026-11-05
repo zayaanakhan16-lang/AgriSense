@@ -27,6 +27,7 @@ import { closeRing, polygonAreaM2 } from '@/lib/geo';
 import { useDrawStore } from '@/store/drawStore';
 import { useFieldsStore } from '@/store/fieldsStore';
 import { EarthMap } from '@/components/map/EarthMap';
+import { RegionDialog, type RegionDraft } from '@/components/map/RegionDialog';
 
 export interface DrawingWorkspaceProps {
   onFieldCreated: (field: Field) => void;
@@ -35,8 +36,8 @@ export interface DrawingWorkspaceProps {
 
 export function DrawingWorkspace({ onFieldCreated, onOpenSearch }: DrawingWorkspaceProps): JSX.Element {
   const [mapInstance, setMapInstance] = useState<MapLibreMap | null>(null);
-  const [fieldName, setFieldName] = useState('');
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const cursor = useMapStore((s) => s.cursor);
   const flyTo = useMapStore((s) => s.flyTo);
@@ -86,27 +87,40 @@ export function DrawingWorkspace({ onFieldCreated, onOpenSearch }: DrawingWorksp
         { padding: 110, duration: 1100, maxZoom: 17 },
       );
     }
+    setDialogOpen(true);
   }, [points, close, mapInstance]);
 
-  const handleSave = useCallback(() => {
-    const trimmed = fieldName.trim();
-    if (!trimmed) {
-      setValidationMessage('Give the field a name before continuing.');
+  /** Confirms the ring and opens the New Region dialog (Enter, or the button). */
+  const handleConfirm = useCallback(() => {
+    if (points.length < 3) {
+      setValidationMessage('Add at least three points to close the boundary.');
       return;
     }
-    const field = createField({
-      name: trimmed,
-      coords: points,
-      locationLabel: cursor ? formatCoord(cursor, 3) : 'Drawn on the Earth globe',
-    });
-    onFieldCreated(field);
-  }, [fieldName, points, cursor, createField, onFieldCreated]);
+    handleClose();
+  }, [points.length, handleClose]);
 
+  /** Escape (or Cancel) discards the in-progress ring without saving. */
   const handleCancel = useCallback(() => {
     cancel();
     setValidationMessage(null);
-    setFieldName('');
+    setDialogOpen(false);
   }, [cancel]);
+
+  const handleRegionSubmit = useCallback(
+    (draft: RegionDraft) => {
+      const field = createField({
+        name: draft.name,
+        coords: points,
+        locationLabel: cursor ? formatCoord(cursor, 3) : 'Drawn on the Earth globe',
+        crop: draft.crop,
+        regionType: draft.regionType,
+        group: draft.group,
+        color: draft.color,
+      });
+      onFieldCreated(field);
+    },
+    [points, cursor, createField, onFieldCreated],
+  );
 
   const handleLocate = useCallback(() => {
     if (!navigator.geolocation) return;
@@ -127,9 +141,13 @@ export function DrawingWorkspace({ onFieldCreated, onOpenSearch }: DrawingWorksp
         drawing={drawing}
         editing={editing}
         globeMode
+        toolbar
         onMapReady={setMapInstance}
         fieldCoords={closed || editing ? points : null}
         onSearchClick={onOpenSearch}
+        onStartDraw={handleStart}
+        onDrawConfirm={handleConfirm}
+        onDrawCancel={handleCancel}
         className={cn(drawing && 'ring-2 ring-inset ring-lime/25')}
       />
 
@@ -143,7 +161,7 @@ export function DrawingWorkspace({ onFieldCreated, onOpenSearch }: DrawingWorksp
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -14 }}
               transition={{ duration: 0.26 }}
-              className="pointer-events-auto mt-12 w-full max-w-[440px] sm:mt-14"
+              className="pointer-events-auto mt-16 w-full max-w-[440px] sm:mt-20"
             >
               <div className="chrome overflow-hidden">
                 <div className="flex items-start gap-3.5 p-4">
@@ -207,7 +225,8 @@ export function DrawingWorkspace({ onFieldCreated, onOpenSearch }: DrawingWorksp
                   <div>
                     <p className="text-xs font-semibold text-cream">Drawing mode active</p>
                     <p className="text-2xs text-cream/55">
-                      Click to place vertices. Panning is locked so the camera stays over your field.
+                      Click to place vertices, press <span className="font-mono text-cream/80">Enter</span> to save or{' '}
+                      <span className="font-mono text-cream/80">Escape</span> to cancel. Panning is locked while drawing.
                     </p>
                   </div>
                 </div>
@@ -316,9 +335,9 @@ export function DrawingWorkspace({ onFieldCreated, onOpenSearch }: DrawingWorksp
         ) : null}
       </AnimatePresence>
 
-      {/* --------------------------------------------------------- confirm & name */}
+      {/* ------------------------------------------------------- closed boundary HUD */}
       <AnimatePresence>
-        {closed ? (
+        {closed && !dialogOpen ? (
           <motion.div
             key="confirm"
             initial={{ opacity: 0, y: 26 }}
@@ -344,25 +363,6 @@ export function DrawingWorkspace({ onFieldCreated, onOpenSearch }: DrawingWorksp
                 </div>
               </div>
 
-              <div className="hairline my-4" />
-
-              <label className="block">
-                <span className="label-caps text-cream/55">Field name</span>
-                <input
-                  value={fieldName}
-                  onChange={(event) => {
-                    setFieldName(event.target.value);
-                    setValidationMessage(null);
-                  }}
-                  placeholder="e.g. North pivot — wheat block"
-                  className="mt-2 w-full rounded-lg border border-white/15 bg-white/[0.06] px-3 py-2 text-sm text-cream placeholder:text-cream/35 focus:border-lime focus:outline-none focus:ring-2 focus:ring-lime/40"
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') handleSave();
-                  }}
-                  autoFocus
-                />
-              </label>
-
               {validationMessage ? (
                 <InlineNotice tone="warning" className="mt-3">
                   <span className="flex items-center gap-2">
@@ -373,9 +373,9 @@ export function DrawingWorkspace({ onFieldCreated, onOpenSearch }: DrawingWorksp
               ) : null}
 
               <div className="mt-4 flex flex-wrap items-center gap-2">
-                <Button variant="lime" onClick={handleSave}>
+                <Button variant="lime" onClick={() => setDialogOpen(true)}>
                   <Sparkles className="size-4" />
-                  Analyse this field
+                  Save region
                 </Button>
                 <Button variant="shell" className="border border-white/10" onClick={startEditing}>
                   <Pencil className="size-3.5" />
@@ -406,6 +406,15 @@ export function DrawingWorkspace({ onFieldCreated, onOpenSearch }: DrawingWorksp
           </motion.div>
         ) : null}
       </AnimatePresence>
+
+      {/* ---------------------------------------------------------- New Region dialog */}
+      <RegionDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        areaM2={area}
+        locationLabel={cursor ? formatCoord(cursor, 3) : 'Drawn on the Earth globe'}
+        onSubmit={handleRegionSubmit}
+      />
 
       {/* ------------------------------------------------------- drawing ambience */}
       {drawing ? (

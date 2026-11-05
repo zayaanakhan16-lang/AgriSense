@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Field, LngLat } from '@/types';
+import type { Field, LngLat, RegionType } from '@/types';
 import { bboxOf, centroidOf, closeRing, perimeterM, polygonAreaM2 } from '@/lib/geo';
 import { uniqueId } from '@/lib/utils';
 
@@ -12,6 +12,10 @@ export interface CreateFieldInput {
   isSample?: boolean;
   soilTexture?: string;
   notes?: string;
+  crop?: string;
+  regionType?: RegionType;
+  group?: string;
+  color?: string;
 }
 
 interface FieldsState {
@@ -22,6 +26,8 @@ interface FieldsState {
   deleteField: (id: string) => void;
   selectField: (id: string | null) => void;
   getField: (id: string | null) => Field | null;
+  /** Insert a fully-formed region (used to seed the demonstration region). */
+  addField: (field: Field) => void;
 }
 
 export function buildBoundary(coords: LngLat[]): Field['boundary'] {
@@ -54,6 +60,10 @@ export const useFieldsStore = create<FieldsState>()(
           isSample: input.isSample,
           soilTexture: input.soilTexture,
           notes: input.notes,
+          crop: input.crop,
+          regionType: input.regionType,
+          group: input.group,
+          color: input.color,
         };
         set((state) => ({ fields: [field, ...state.fields], selectedFieldId: field.id }));
         return field;
@@ -76,6 +86,13 @@ export const useFieldsStore = create<FieldsState>()(
         if (!id) return null;
         return get().fields.find((field) => field.id === id) ?? null;
       },
+
+      addField: (field) =>
+        set((state) => ({
+          fields: state.fields.some((existing) => existing.id === field.id)
+            ? state.fields
+            : [field, ...state.fields],
+        })),
     }),
     { name: 'agrisense.fields.v1', version: 1 },
   ),

@@ -84,6 +84,8 @@ export interface SeriesSpec {
   name: string;
   color: string;
   unit?: string;
+  /** Render a dashed line (used for minimum-temperature series). */
+  dash?: boolean;
 }
 
 /* ---------------------------------------------------------------- time series */
@@ -186,6 +188,7 @@ export function TimeSeriesChart({
                 name={spec.name}
                 stroke={spec.color}
                 strokeWidth={1.8}
+                strokeDasharray={spec.dash ? '5 4' : undefined}
                 connectNulls
                 dot={false}
                 activeDot={{ r: 3, strokeWidth: 0 }}
@@ -206,6 +209,7 @@ export function BarSeriesChart({
   series,
   height = 190,
   formatValue,
+  formatX,
   stacked = false,
   className,
 }: {
@@ -214,19 +218,37 @@ export function BarSeriesChart({
   series: SeriesSpec[];
   height?: number;
   formatValue?: (value: number, name: string) => string;
+  formatX?: (value: string) => string;
   stacked?: boolean;
   className?: string;
 }): JSX.Element {
+  const tickFormatter = useMemo(
+    () =>
+      formatX ??
+      ((value: string) => {
+        const date = new Date(value);
+        return Number.isNaN(date.getTime())
+          ? value
+          : date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+      }),
+    [formatX],
+  );
+
   return (
     <div className={cn('w-full', className)} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 6, right: 8, bottom: 0, left: -18 }}>
           <CartesianGrid stroke={GRID_STROKE} vertical={false} />
-          <XAxis dataKey={xKey} {...AXIS} />
+          <XAxis dataKey={xKey} {...AXIS} tickFormatter={tickFormatter} minTickGap={28} />
           <YAxis {...AXIS} width={46} tickFormatter={(v: number) => v.toFixed(0)} />
           <RechartsTooltip
             cursor={{ fill: 'rgba(247,247,239,0.05)' }}
-            content={<ChartTooltip valueFormatter={formatValue ?? ((v) => v.toFixed(1))} />}
+            content={
+              <ChartTooltip
+                labelFormatter={(label) => tickFormatter(String(label))}
+                valueFormatter={formatValue ?? ((v) => v.toFixed(1))}
+              />
+            }
           />
           {series.map((spec) => (
             <Bar
@@ -276,13 +298,19 @@ export function AllocationDonut({
   data,
   height = 200,
   className,
+  activeName,
+  onSelect,
+  centerLabel,
 }: {
   data: Array<{ name: string; value: number; color: string }>;
   height?: number;
   className?: string;
+  activeName?: string | null;
+  onSelect?: (name: string) => void;
+  centerLabel?: { value: string; caption: string };
 }): JSX.Element {
   return (
-    <div className={cn('w-full', className)} style={{ height }}>
+    <div className={cn('relative w-full', className)} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
@@ -294,14 +322,28 @@ export function AllocationDonut({
             paddingAngle={2}
             stroke="rgba(0,31,25,0.9)"
             strokeWidth={2}
+            onClick={(entry: { name?: string }) => {
+              if (entry?.name && onSelect) onSelect(entry.name);
+            }}
+            className={onSelect ? 'cursor-pointer' : undefined}
           >
             {data.map((entry) => (
-              <Cell key={entry.name} fill={entry.color} />
+              <Cell
+                key={entry.name}
+                fill={entry.color}
+                fillOpacity={activeName && activeName !== entry.name ? 0.4 : 1}
+              />
             ))}
           </Pie>
           <RechartsTooltip content={<ChartTooltip valueFormatter={(v) => `${(v * 100).toFixed(1)}%`} />} />
         </PieChart>
       </ResponsiveContainer>
+      {centerLabel ? (
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <span className="font-mono text-xl font-semibold tabular-nums text-cream">{centerLabel.value}</span>
+          <span className="text-3xs uppercase tracking-[0.12em] text-cream/50">{centerLabel.caption}</span>
+        </div>
+      ) : null}
     </div>
   );
 }

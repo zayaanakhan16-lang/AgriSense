@@ -6,6 +6,9 @@ import { AppShell } from '@/components/layout/AppShell';
 import { LoadingScreen } from '@/components/common/LoadingScreen';
 
 const EarthExplorerPage = lazy(() => import('@/features/earth/EarthExplorerPage'));
+const RegionAnalyticsPage = lazy(() => import('@/features/analytics/RegionAnalyticsPage'));
+const CropProfilesPage = lazy(() => import('@/features/crop-profiles/CropProfilesPage'));
+const CropPlanPage = lazy(() => import('@/features/crop-plan/CropPlanPage'));
 const MyFieldsPage = lazy(() => import('@/features/fields/MyFieldsPage'));
 const FieldIntelligencePage = lazy(() => import('@/features/intelligence/FieldIntelligencePage'));
 const VegetationPage = lazy(() => import('@/features/vegetation/VegetationPage'));
@@ -35,6 +38,9 @@ export default function App(): JSX.Element {
           <Routes>
             <Route element={<AppShell />}>
               <Route index element={<EarthExplorerPage />} />
+              <Route path="analytics" element={<RegionAnalyticsPage />} />
+              <Route path="crop-profiles" element={<CropProfilesPage />} />
+              <Route path="crop-plan" element={<CropPlanPage />} />
               <Route path="fields" element={<MyFieldsPage />} />
               <Route path="intelligence" element={<FieldIntelligencePage />} />
               <Route path="vegetation" element={<VegetationPage />} />

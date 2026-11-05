@@ -22,6 +22,7 @@ import { formatArea, formatCoord, toDMS } from '@/lib/format';
 import { BASEMAP_ORDER, useMapStore, type BasemapId } from '@/store/mapStore';
 import { computeDrawMetrics, useDrawStore } from '@/store/drawStore';
 import { availableBasemaps, isWebglAvailable, resolveBasemap, useEarthMap } from './earthMapSetup';
+import { MapToolbar, type MapViewMode } from './MapToolbar';
 import {
   installLayers,
   setDrawInteractivity,
@@ -45,8 +46,18 @@ export interface EarthMapProps {
   editing?: boolean;
   /** Show the globe-appropriate chrome (search, layer switcher, locator). */
   globeMode?: boolean;
+  /** Render the vertical left toolbar (layers, zoom, tools). */
+  toolbar?: boolean;
+  /** Show the bottom-left coordinate readout. */
+  showCursorReadout?: boolean;
   onMapReady?: (map: MapLibreMap) => void;
   onSearchClick?: () => void;
+  /** Invoked by the toolbar drawing tool. */
+  onStartDraw?: () => void;
+  /** Enter pressed while drawing. */
+  onDrawConfirm?: () => void;
+  /** Escape pressed while drawing. */
+  onDrawCancel?: () => void;
   compact?: boolean;
 }
 
@@ -59,10 +70,16 @@ export function EarthMap({
   drawing = false,
   editing = false,
   globeMode = false,
+  toolbar = false,
+  showCursorReadout = true,
   onMapReady,
   onSearchClick,
+  onStartDraw,
+  onDrawConfirm,
+  onDrawCancel,
   compact = false,
 }: EarthMapProps): JSX.Element {
+  const [viewMode, setViewMode] = useState<MapViewMode>('map');
   // A callback ref rather than useRef: the map must be created only once the
   // container is actually in the DOM, otherwise MapLibre mounts into a null node.
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -137,6 +154,28 @@ export function EarthMap({
     if (!map || !ready) return;
     setDrawInteractivity(map, drawing);
   }, [mapRef, ready, drawing]);
+
+  /* ------------------------------------------- keyboard: Enter save / Escape cancel */
+  useEffect(() => {
+    if (!drawing) return;
+    const onKeyDown = (event: KeyboardEvent): void => {
+      const target = event.target as HTMLElement | null;
+      // Never hijack typing inside the New Region dialog or any input.
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      // Also guard on the dialog's own open state: once the region dialog is up,
+      // Escape should close the dialog, not discard the ring behind it.
+      if (document.querySelector('[role="dialog"]')) return;
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        onDrawConfirm?.();
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        onDrawCancel?.();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [drawing, onDrawConfirm, onDrawCancel]);
 
   /* ------------------------------------------------------ drag-to-edit vertices */
   useEffect(() => {
@@ -357,29 +396,55 @@ export function EarthMap({
         </div>
       </div>
 
-      {/* ----------------------------------------- left: zoom stack (keeps the
-          right edge free for the floating information rail) */}
-      <div className="absolute left-3 top-1/2 z-20 flex -translate-y-1/2 flex-col gap-2 sm:left-4">
-        <div className="flex flex-col overflow-hidden rounded-full border border-white/10 bg-forest-950/75 shadow-float backdrop-blur">
-          <button
-            type="button"
-            onClick={() => zoomBy(1)}
-            className="flex size-9 items-center justify-center text-cream/80 transition-colors hover:bg-white/10 hover:text-cream"
-            aria-label="Zoom in"
-          >
-            <Plus className="size-4" />
-          </button>
-          <span className="mx-auto h-px w-5 bg-white/10" aria-hidden />
-          <button
-            type="button"
-            onClick={() => zoomBy(-1)}
-            className="flex size-9 items-center justify-center text-cream/80 transition-colors hover:bg-white/10 hover:text-cream"
-            aria-label="Zoom out"
-          >
-            <Minus className="size-4" />
-          </button>
+      {/* ------------------------------------------------- left: vertical toolbar
+          (keeps the right edge free for the floating Region List) */}
+      {toolbar ? (
+        <MapToolbar
+          className="absolute left-3 top-1/2 z-20 -translate-y-1/2 sm:left-4"
+          basemap={basemap}
+          basemaps={basemaps}
+          onSelectBasemap={setBasemap}
+          viewMode={viewMode}
+          onToggleView={() => {
+            setViewMode((mode) => {
+              const next: MapViewMode = mode === 'map' ? 'navigation' : 'map';
+              useMapStore.getState().setProjection(next === 'map' ? 'globe' : 'mercator');
+              mapRef.current?.easeTo({ pitch: next === 'navigation' ? 55 : 0, bearing: 0, duration: 700 });
+              return next;
+            });
+          }}
+          onZoomIn={() => zoomBy(1)}
+          onZoomOut={() => zoomBy(-1)}
+          drawing={drawing}
+          onStartDraw={() => onStartDraw?.()}
+          onLocate={locateMe}
+          labelsVisible={labelsVisible}
+          onToggleLabels={toggleLabels}
+          onResetNorth={resetNorth}
+        />
+      ) : (
+        <div className="absolute left-3 top-1/2 z-20 flex -translate-y-1/2 flex-col gap-2 sm:left-4">
+          <div className="flex flex-col overflow-hidden rounded-full border border-white/10 bg-forest-950/75 shadow-float backdrop-blur">
+            <button
+              type="button"
+              onClick={() => zoomBy(1)}
+              className="flex size-9 items-center justify-center text-cream/80 transition-colors hover:bg-white/10 hover:text-cream"
+              aria-label="Zoom in"
+            >
+              <Plus className="size-4" />
+            </button>
+            <span className="mx-auto h-px w-5 bg-white/10" aria-hidden />
+            <button
+              type="button"
+              onClick={() => zoomBy(-1)}
+              className="flex size-9 items-center justify-center text-cream/80 transition-colors hover:bg-white/10 hover:text-cream"
+              aria-label="Zoom out"
+            >
+              <Minus className="size-4" />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ------------------------------------------------- bottom-left: measurements */}
       <div className="absolute bottom-3 left-3 z-20 flex flex-col items-start gap-2 sm:bottom-4 sm:left-4">
@@ -405,32 +470,34 @@ export function EarthMap({
             </div>
           </div>
         ) : null}
-        <CursorReadout />
+        {showCursorReadout ? <CursorReadout /> : null}
       </div>
 
       {/* ------------------------------------------- bottom-right: layers + locate */}
       <div className="absolute bottom-3 right-3 z-20 flex items-center gap-2 sm:bottom-4 sm:right-4">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              onClick={toggleLabels}
-              aria-label={labelsVisible ? 'Hide place labels' : 'Show place labels'}
-              aria-pressed={labelsVisible}
-              className={cn(
-                'flex size-9 items-center justify-center rounded-full border shadow-float backdrop-blur transition-colors',
-                labelsVisible
-                  ? 'border-lime/40 bg-lime/15 text-lime'
-                  : 'border-white/10 bg-forest-950/75 text-cream/70 hover:text-cream',
-              )}
-            >
-              <Layers className="size-4" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent>{labelsVisible ? 'Hide labels' : 'Show labels'}</TooltipContent>
-        </Tooltip>
+        {!toolbar ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={toggleLabels}
+                aria-label={labelsVisible ? 'Hide place labels' : 'Show place labels'}
+                aria-pressed={labelsVisible}
+                className={cn(
+                  'flex size-9 items-center justify-center rounded-full border shadow-float backdrop-blur transition-colors',
+                  labelsVisible
+                    ? 'border-lime/40 bg-lime/15 text-lime'
+                    : 'border-white/10 bg-forest-950/75 text-cream/70 hover:text-cream',
+                )}
+              >
+                <Layers className="size-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>{labelsVisible ? 'Hide labels' : 'Show labels'}</TooltipContent>
+          </Tooltip>
+        ) : null}
 
-        {globeMode ? (
+        {globeMode && !toolbar ? (
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -446,11 +513,13 @@ export function EarthMap({
           </Tooltip>
         ) : null}
 
-        <BasemapSwitcher
-          current={basemap}
-          onChange={(id) => setBasemap(id)}
-          options={basemaps}
-        />
+        {!toolbar ? (
+          <BasemapSwitcher
+            current={basemap}
+            onChange={(id) => setBasemap(id)}
+            options={basemaps}
+          />
+        ) : null}
       </div>
 
       {!ready ? (
