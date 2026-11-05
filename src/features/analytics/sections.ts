@@ -1,11 +1,8 @@
 import { lazy, type LazyExoticComponent } from 'react';
 import {
-  CalendarDays,
-  CalendarRange,
   Droplets,
   FileText,
   Gauge,
-  Grid3x3,
   Leaf,
   MapPinned,
   Mountain,
@@ -28,6 +25,10 @@ export interface AnalyticsSection {
  * These were separate top-level pages before the product was collapsed to two
  * workspaces (Map and Analytics). They are kept as their own modules and loaded
  * lazily, so only the section the user opens is fetched.
+ *
+ * Crop profiles, suitability, planning and the seasonal rotation all describe the
+ * same crop decision, so they are grouped under the single "Crops" section rather
+ * than repeated as sibling tabs.
  */
 export const ANALYTICS_SECTIONS: AnalyticsSection[] = [
   {
@@ -38,11 +39,11 @@ export const ANALYTICS_SECTIONS: AnalyticsSection[] = [
     Page: null,
   },
   {
-    id: 'profiles',
-    label: 'Crop Profiles',
-    icon: Grid3x3,
-    description: 'Crop profile points sampled on the satellite map',
-    Page: lazy(() => import('@/features/crop-profiles/CropProfilesPage')),
+    id: 'crops',
+    label: 'Crops',
+    icon: Sprout,
+    description: 'Crop profiles, suitability comparison, planning and rotation',
+    Page: lazy(() => import('@/features/analytics/CropsSection')),
   },
   {
     id: 'vegetation',
@@ -62,22 +63,8 @@ export const ANALYTICS_SECTIONS: AnalyticsSection[] = [
     id: 'climate',
     label: 'Weather & Water',
     icon: Droplets,
-    description: 'Rainfall, temperature, ET₀ and water balance',
+    description: 'Rainfall, temperature, ET0 and water balance',
     Page: lazy(() => import('@/features/climate/ClimatePage')),
-  },
-  {
-    id: 'crops',
-    label: 'Crop Suitability',
-    icon: Sprout,
-    description: 'Rules-first crop suitability comparison',
-    Page: lazy(() => import('@/features/crops/CropPlanningPage')),
-  },
-  {
-    id: 'planning',
-    label: 'Crop Planning',
-    icon: CalendarRange,
-    description: 'Intercropping pairs, rotation and the crop calendar',
-    Page: lazy(() => import('@/features/crop-plan/CropPlanPage')),
   },
   {
     id: 'studio',
@@ -85,13 +72,6 @@ export const ANALYTICS_SECTIONS: AnalyticsSection[] = [
     icon: MapPinned,
     description: 'Spatial allocation of crops across zones',
     Page: lazy(() => import('@/features/studio/CropStudioPage')),
-  },
-  {
-    id: 'calendar',
-    label: 'Seasonal Plan',
-    icon: CalendarDays,
-    description: 'Rotation across spring, summer and winter',
-    Page: lazy(() => import('@/features/calendar/SeasonalCalendarPage')),
   },
   {
     id: 'decision',

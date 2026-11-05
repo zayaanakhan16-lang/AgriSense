@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
@@ -28,7 +28,6 @@ import {
   AnalysisErrorBanner,
   FieldHeaderCard,
   MetricTile,
-  PageScaffold,
   SectionCard,
   SkeletonPanel,
 } from '@/components/layout/PageScaffold';
@@ -57,6 +56,16 @@ const FACTOR_LABELS: Record<string, string> = {
 };
 
 export default function CropPlanningPage(): JSX.Element {
+  return <CropSuitability embedded={false} />;
+}
+
+/**
+ * Rules-engine crop suitability comparison.
+ *
+ * `embedded` drops the standalone page chrome so the crop workspace can stack
+ * this below the crop-profile map on one continuous page.
+ */
+export function CropSuitability({ embedded }: { embedded: boolean }): JSX.Element {
   const { field, intelligence, stages, running, completed, error, analysedAt, run } = useFieldIntelligence();
   const { evaluation, planning } = intelligence;
   const [verdictFilter, setVerdictFilter] = useState<'all' | SuitabilityVerdict>('all');
@@ -110,19 +119,17 @@ export default function CropPlanningPage(): JSX.Element {
 
   if (!field) {
     return (
-      <PageScaffold
-        title="Crop Planning"
-        description="The deterministic rules engine decides which crops are acceptable before any AI explanation."
-      >
+      <Scaffold embedded={embedded} title="Crop Planning" description="The deterministic rules engine decides which crops are acceptable before any AI explanation.">
         <NoFieldSelected />
-      </PageScaffold>
+      </Scaffold>
     );
   }
 
   const context = evaluation?.fieldContext;
 
   return (
-    <PageScaffold
+    <Scaffold
+      embedded={embedded}
       title="Crop Planning"
       description="Rules engine first, AI explanation second. The model never introduces a crop the engine has not approved."
       actions={
@@ -704,7 +711,48 @@ export default function CropPlanningPage(): JSX.Element {
           </InlineNotice>
         ) : null}
       </div>
-    </PageScaffold>
+    </Scaffold>
+  );
+}
+
+/** Page chrome that collapses to a plain block when embedded in the crop workspace. */
+function Scaffold({
+  embedded,
+  title,
+  description,
+  actions,
+  children,
+}: {
+  embedded: boolean;
+  title: string;
+  description: string;
+  actions?: ReactNode;
+  children: ReactNode;
+}): JSX.Element {
+  const header = (
+    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/60 px-4 py-3.5 sm:px-6">
+      <div className="min-w-0">
+        <h2 className="font-display text-base font-semibold leading-tight">{title}</h2>
+        <p className="mt-0.5 max-w-2xl text-xs leading-relaxed text-muted-foreground">{description}</p>
+      </div>
+      {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <section className="overflow-hidden rounded-xl border border-white/10 bg-black/30">
+        {header}
+        {children}
+      </section>
+    );
+  }
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      {header}
+      <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+    </div>
   );
 }
 

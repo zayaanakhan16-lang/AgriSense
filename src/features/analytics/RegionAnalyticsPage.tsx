@@ -148,14 +148,7 @@ export default function RegionAnalyticsPage(): JSX.Element {
             </div>
           ) : (
             <div className="w-full px-3 pb-8 pt-4 sm:px-5">
-              <div
-                className={cn(
-                  'overflow-hidden rounded-xl border border-white/10 bg-card/70 backdrop-blur-sm',
-                  // The crop-profile section is a full-bleed map, so it needs an
-                  // explicit height; the other sections lay out as normal content.
-                  section.id === 'profiles' ? 'h-[70vh] min-h-[420px]' : null,
-                )}
-              >
+              <div className="overflow-hidden rounded-xl border border-white/10 bg-black/40 backdrop-blur-sm">
                 <Suspense
                   fallback={
                     <div className="p-4">

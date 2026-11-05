@@ -71,7 +71,7 @@ export function AppShell(): JSX.Element {
       >
         <Logo showWordmark invert markClassName="size-8" className="shrink-0" />
 
-        <Separator className="hidden h-6 bg-white/12 md:block" />
+        <Separator className="hidden h-6 w-px bg-white/12 md:block" />
 
         {/* primary navigation */}
         <nav aria-label="Primary" className="hidden min-w-0 flex-1 md:block">

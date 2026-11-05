@@ -16,6 +16,16 @@ import {
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export default function CropPlanPage(): JSX.Element {
+  return <CropPlan embedded={false} />;
+}
+
+/**
+ * Intercropping, rotation and the crop calendar.
+ *
+ * `embedded` drops the standalone page header and map backdrop so the crop
+ * workspace can stack this below the suitability content.
+ */
+export function CropPlan({ embedded }: { embedded: boolean }): JSX.Element {
   const fields = useFieldsStore((s) => s.fields);
   const selectedFieldId = useFieldsStore((s) => s.selectedFieldId);
   const field = fields.find((entry) => entry.id === selectedFieldId) ?? fields[0] ?? null;
@@ -41,16 +51,8 @@ export default function CropPlanPage(): JSX.Element {
     );
   }
 
-  return (
-    <div className="relative size-full overflow-hidden bg-forest-950">
-      <div className="pointer-events-none absolute inset-0 opacity-30 blur-[2px]">
-        <EarthMap fieldCoords={field.boundary.coords} showCursorReadout={false} compact className="size-full" />
-      </div>
-
-      <div className="relative z-10 h-full overflow-y-auto px-3 py-5 sm:px-5">
-        <div className="mx-auto w-full max-w-[1080px] space-y-4">
-          {/* ---------------------------------------------------------- header */}
-          <div className="chrome p-4">
+  const header = (
+    <div className="chrome p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h1 className="font-display text-base font-semibold text-cream">Crop Planning</h1>
@@ -65,7 +67,11 @@ export default function CropPlanPage(): JSX.Element {
                 region — confirm them against local agronomy before planting.
               </p>
             </div>
-          </div>
+    </div>
+  );
+
+  const body = (
+    <div className="space-y-4">
 
           {/* ----------------------------------------------------- crop details */}
           <section className="chrome p-4">
@@ -227,6 +233,27 @@ export default function CropPlanPage(): JSX.Element {
               Illustrative sample guidance generated for this demonstration region. Not verified agronomic advice.
             </p>
           </section>
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <div className="space-y-4">
+        {header}
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative size-full overflow-hidden bg-forest-950">
+      <div className="pointer-events-none absolute inset-0 opacity-30 blur-[2px]">
+        <EarthMap fieldCoords={field.boundary.coords} showCursorReadout={false} compact className="size-full" />
+      </div>
+      <div className="relative z-10 h-full overflow-y-auto px-3 py-5 sm:px-5">
+        <div className="mx-auto w-full max-w-[1080px] space-y-4">
+          {header}
+          {body}
         </div>
       </div>
     </div>

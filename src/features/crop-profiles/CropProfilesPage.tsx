@@ -17,6 +17,16 @@ type Filter = 'All' | (typeof CROP_PROFILE_CATEGORIES)[number];
  * crop profile; the legend doubles as a filter.
  */
 export default function CropProfilesPage(): JSX.Element {
+  return <CropProfiles embedded={false} />;
+}
+
+/**
+ * Crop Profiles on the satellite map.
+ *
+ * `embedded` renders just the map block so the crop workspace can stack it above
+ * the suitability and planning content instead of nesting a second page header.
+ */
+export function CropProfiles({ embedded }: { embedded: boolean }): JSX.Element {
   const fields = useFieldsStore((s) => s.fields);
   const selectedFieldId = useFieldsStore((s) => s.selectedFieldId);
   const field = fields.find((entry) => entry.id === selectedFieldId) ?? fields[0] ?? null;
@@ -48,7 +58,12 @@ export default function CropProfilesPage(): JSX.Element {
   }
 
   return (
-    <div className="relative size-full overflow-hidden bg-forest-950">
+    <div
+      className={cn(
+        'relative overflow-hidden bg-forest-950',
+        embedded ? 'h-[440px] rounded-lg border border-white/10' : 'size-full',
+      )}
+    >
       <EarthMap fieldCoords={field.boundary.coords} markers={markers} compact className="size-full" />
 
       {/* ------------------------------------------------------------- header */}
