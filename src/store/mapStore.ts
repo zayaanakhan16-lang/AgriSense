@@ -136,7 +136,7 @@ interface MapState {
   resetToGlobe: () => void;
 }
 
-export const GLOBAL_VIEW: MapViewState = { center: { lng: 18, lat: 20 }, zoom: 1.5, bearing: 0, pitch: 0 };
+export const GLOBAL_VIEW: MapViewState = { center: { lng: 18, lat: 20 }, zoom: 2.35, bearing: 0, pitch: 0 };
 
 export const useMapStore = create<MapState>((set) => ({
   view: GLOBAL_VIEW,

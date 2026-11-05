@@ -162,8 +162,8 @@
 
   /* Floating dark chrome used over the globe and satellite map. */
   .chrome {
-    background: linear-gradient(180deg, rgba(1, 38, 27, 0.88), rgba(2, 13, 5, 0.92));
-    border: 1px solid rgba(215, 250, 84, 0.14);
+    background: linear-gradient(180deg, rgba(26, 40, 33, 0.9), rgba(13, 24, 18, 0.94));
+    border: 1px solid rgba(215, 250, 84, 0.16);
     backdrop-filter: blur(14px) saturate(130%);
     @apply rounded-xl shadow-float;
   }

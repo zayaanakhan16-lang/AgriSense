@@ -74,7 +74,20 @@ export function buildRasterStyle({ basemap, labelsVisible }: BuildStyleOptions):
     },
     layers: [
       { id: 'background', type: 'background', paint: { 'background-color': '#020d05' } },
-      { id: 'basemap', type: 'raster', source: 'basemap', paint: { 'raster-opacity': 1 } },
+      {
+        id: 'basemap',
+        type: 'raster',
+        source: 'basemap',
+        // Lift shadows and add a little saturation: the Sentinel-2 mosaic is
+        // genuinely dim at low zoom, and the references show a bright, legible map.
+        paint: {
+          'raster-opacity': 1,
+          'raster-brightness-min': 0.12,
+          'raster-brightness-max': 1,
+          'raster-saturation': 0.18,
+          'raster-contrast': 0.06,
+        },
+      },
       ...(labelsVisible
         ? [
             {
